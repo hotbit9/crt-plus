@@ -69,6 +69,7 @@ QtObject {
     property string saturatedColor: Utils.mix(Utils.strToColor(_fontColor), Utils.strToColor("#FFFFFF"), (saturationColor * 0.5))
     property color fontColor: Utils.mix(Utils.strToColor(_backgroundColor), Utils.strToColor(saturatedColor), (0.7 + (contrast * 0.3)))
     property color backgroundColor: Utils.mix(Utils.strToColor(saturatedColor), Utils.strToColor(_backgroundColor), (0.7 + (contrast * 0.3)))
+
     property color frameColor: Utils.strToColor(_frameColor)
 
     property real staticNoise: 0.12
@@ -132,7 +133,12 @@ QtObject {
         baseFontScaling: baseFontScaling
     }
 
+    property string defaultProfileName: ""
+    property int currentProfileIndex: -1
+    property var builtinProfileDefaults: ({})
+
     signal initializedSettings
+    signal profileChanged()
 
     function incrementScaling() {
         fontScaling = Math.min(fontScaling + 0.05, maximumFontScaling)
@@ -195,6 +201,7 @@ QtObject {
             "fontName": fontName,
             "fontSource": fontSource,
             "fontWidth": fontWidth,
+            "lineSpacing": lineSpacing,
             "margin": _margin,
             "blinkingCursor": blinkingCursor,
             "frameSize": _frameSize,
@@ -212,6 +219,10 @@ QtObject {
     function loadSettings() {
         var settingsString = storage.getSetting("_CURRENT_SETTINGS")
         var profileString = storage.getSetting("_CURRENT_PROFILE")
+
+        var storedDefaultProfileName = storage.getSetting("_DEFAULT_PROFILE_NAME")
+        if (storedDefaultProfileName)
+            defaultProfileName = storedDefaultProfileName
 
         if (!settingsString)
             return
@@ -231,10 +242,37 @@ QtObject {
 
         storage.setSetting("_CURRENT_SETTINGS", settingsString)
         storage.setSetting("_CURRENT_PROFILE", profileString)
+        storage.setSetting("_DEFAULT_PROFILE_NAME", defaultProfileName)
+        storage.setSetting("_MODIFIED_BUILTINS", composeModifiedBuiltinsString())
 
         if (verbose) {
             console.log("Storing settings: " + settingsString)
             console.log("Storing profile: " + profileString)
+        }
+    }
+
+    function composeModifiedBuiltinsString() {
+        var modified = {}
+        for (var i = 0; i < profilesList.count; i++) {
+            var profile = profilesList.get(i)
+            if (!profile.builtin) continue
+            var original = builtinProfileDefaults[profile.text]
+            if (original !== undefined && original !== profile.obj_string) {
+                modified[profile.text] = profile.obj_string
+            }
+        }
+        return stringify(modified)
+    }
+
+    function loadModifiedBuiltins() {
+        var stored = storage.getSetting("_MODIFIED_BUILTINS")
+        if (!stored) return
+        var modified = JSON.parse(stored)
+        for (var i = 0; i < profilesList.count; i++) {
+            var profile = profilesList.get(i)
+            if (profile.builtin && modified[profile.text] !== undefined) {
+                profilesList.setProperty(i, "obj_string", modified[profile.text])
+            }
         }
     }
 
@@ -296,8 +334,9 @@ QtObject {
         windowOpacity = settings.windowOpacity
                 !== undefined ? settings.windowOpacity : windowOpacity
 
-        fontName = settings.fontName !== undefined ? settings.fontName : fontName
+        // Set fontSource before fontName to ensure the filtered font list is correct
         fontSource = settings.fontSource !== undefined ? settings.fontSource : fontSource
+        fontName = settings.fontName !== undefined ? settings.fontName : fontName
         fontWidth = settings.fontWidth !== undefined ? settings.fontWidth : fontWidth
         lineSpacing = settings.lineSpacing !== undefined ? settings.lineSpacing : lineSpacing
 
@@ -308,6 +347,8 @@ QtObject {
         _frameShininess = settings.frameShininess !== undefined ? settings.frameShininess : _frameShininess
 
         blinkingCursor = settings.blinkingCursor !== undefined ? settings.blinkingCursor : blinkingCursor
+
+        profileChanged()
     }
 
     function storeCustomProfiles() {
@@ -351,6 +392,29 @@ QtObject {
     function loadProfile(index) {
         var profile = profilesList.get(index)
         loadProfileString(profile.obj_string)
+        currentProfileIndex = index
+    }
+
+    function setDefaultProfile(index) {
+        defaultProfileName = profilesList.get(index).text
+        storage.setSetting("_DEFAULT_PROFILE_NAME", defaultProfileName)
+    }
+
+    function isBuiltinProfileModified(index) {
+        var profile = profilesList.get(index)
+        if (!profile.builtin) return false
+        var original = builtinProfileDefaults[profile.text]
+        return original !== undefined && original !== profile.obj_string
+    }
+
+    function resetBuiltinProfile(index) {
+        var profile = profilesList.get(index)
+        if (!profile.builtin) return
+        var original = builtinProfileDefaults[profile.text]
+        if (original !== undefined) {
+            profilesList.setProperty(index, "obj_string", original)
+            storage.setSetting("_MODIFIED_BUILTINS", composeModifiedBuiltinsString())
+        }
     }
 
     function appendCustomProfile(name, profileString) {
@@ -861,14 +925,40 @@ QtObject {
 
         loadCustomProfiles()
 
+        // Snapshot built-in profiles for reset functionality
+        var defaults = {}
+        for (var bi = 0; bi < profilesList.count; bi++) {
+            var bp = profilesList.get(bi)
+            if (bp.builtin) {
+                defaults[bp.text] = bp.obj_string
+            }
+        }
+        builtinProfileDefaults = defaults
+
+        // Apply any previously saved modifications to built-in profiles
+        loadModifiedBuiltins()
+
+        var profileStringPosition = args.indexOf("--profile-string")
         var profileArgPosition = args.indexOf("--profile")
-        if (profileArgPosition !== -1) {
+
+        if (profileStringPosition !== -1 && profileStringPosition + 1 < args.length) {
+            loadProfileString(args[profileStringPosition + 1])
+        } else if (profileArgPosition !== -1) {
             var profileIndex = getProfileIndexByName(args[profileArgPosition + 1])
             if (profileIndex !== -1) {
                 loadProfile(profileIndex)
             } else {
                 console.log("Warning: selected profile is not valid; ignoring it")
             }
+        } else if (defaultProfileName !== "") {
+            var defaultIndex = getProfileIndexByName(defaultProfileName)
+            if (defaultIndex !== -1) {
+                loadProfile(defaultIndex)
+            }
+        }
+
+        if (currentProfileIndex < 0) {
+            currentProfileIndex = 0
         }
 
         initializedSettings()

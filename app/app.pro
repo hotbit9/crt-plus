@@ -1,19 +1,8 @@
 QT += qml quick widgets sql quickcontrols2
-TARGET = cool-retro-term
+TARGET = crt-plus
 APP_VERSION = $$system(git -C $$PWD/.. describe --tags --always --dirty=-dirty)
 isEmpty(APP_VERSION): APP_VERSION = "unknown"
 DEFINES += APP_VERSION=\\\"$$APP_VERSION\\\"
-
-# TODO: When migrating to CMake, use KDSingleApplication's CMakeLists.txt instead of these manual sources.
-INCLUDEPATH += $$PWD/../KDSingleApplication/src
-HEADERS += \
-    $$PWD/../KDSingleApplication/src/kdsingleapplication.h \
-    $$PWD/../KDSingleApplication/src/kdsingleapplication_lib.h \
-    $$PWD/../KDSingleApplication/src/kdsingleapplication_localsocket_p.h
-SOURCES += \
-    $$PWD/../KDSingleApplication/src/kdsingleapplication.cpp \
-    $$PWD/../KDSingleApplication/src/kdsingleapplication_localsocket.cpp
-DEFINES += KDSINGLEAPPLICATION_STATIC_BUILD
 
 DESTDIR = $$OUT_PWD/../
 
@@ -26,6 +15,14 @@ SOURCES += main.cpp \
     fileio.cpp \
     fontmanager.cpp \
     fontlistmodel.cpp
+
+macx {
+    HEADERS += macutils.h
+    OBJECTIVE_SOURCES += macutils.mm
+    LIBS += -framework AppKit
+    # Start as LSUIElement (no dock icon). Primary instance promotes itself to Regular.
+    QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Add :LSUIElement bool true\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" 2>/dev/null || /usr/libexec/PlistBuddy -c \"Set :LSUIElement true\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" ;
+}
 
 macx:ICON = icons/crt.icns
 

@@ -79,7 +79,7 @@ Menu {
             delegate: MenuItem {
                 text: model.text
                 onTriggered: {
-                    appSettings.loadProfileString(obj_string)
+                    terminalTabs.loadProfileForCurrentTab(obj_string)
                 }
             }
             onObjectAdded: function(index, object) { profilesMenu.insertItem(index, object) }

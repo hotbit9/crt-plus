@@ -260,6 +260,25 @@ Item{
                            (y - cc.height * (1+distortion) * distortion) * (kterminal.totalHeight))
         }
     }
+    DropArea {
+        anchors.fill: parent
+        onDropped: function(drop) {
+            if (drop.hasUrls) {
+                var paths = [];
+                for (var i = 0; i < drop.urls.length; i++) {
+                    var url = drop.urls[i].toString();
+                    var path = decodeURIComponent(url.replace(/^file:\/\//, ""));
+                    paths.push(escapeShellPath(path));
+                }
+                ksession.sendText(paths.join(" "));
+            }
+        }
+
+        function escapeShellPath(path) {
+            return path.replace(/[ !"#$&'()*,;<>?\\[\]^`{|}~]/g, '\\$&');
+        }
+    }
+
     ShaderEffectSource{
         id: kterminalSource
         sourceItem: kterminal

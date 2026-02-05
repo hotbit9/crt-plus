@@ -25,11 +25,17 @@ QtObject {
     id: appRoot
 
     property ApplicationSettings appSettings: ApplicationSettings {
-        onInitializedSettings: appRoot.createWindow()
+        onInitializedSettings: {
+            if (initialX !== undefined && initialY !== undefined) {
+                terminalWindow.x = initialX
+                terminalWindow.y = initialY
+            }
+            terminalWindow.visible = true
+        }
     }
 
     property TimeManager timeManager: TimeManager {
-        enableTimer: windowsModel.count > 0
+        enableTimer: true
     }
 
     property SettingsWindow settingsWindow: SettingsWindow {
@@ -40,34 +46,22 @@ QtObject {
         visible: false
     }
 
-    property Component windowComponent: Component {
-        TerminalWindow { }
-    }
-
-    property ListModel windowsModel: ListModel { }
+    property TerminalWindow terminalWindow: TerminalWindow { }
 
     function createWindow() {
-        var window = windowComponent.createObject(null)
-        if (!window)
-            return
-
-        windowsModel.append({ window: window })
-        window.show()
-        window.requestActivate()
-    }
-
-    function closeWindow(window) {
-        for (var i = 0; i < windowsModel.count; i++) {
-            if (windowsModel.get(i).window === window) {
-                windowsModel.remove(i)
-                break
+        var profileString
+        if (appSettings.defaultProfileName !== "") {
+            var defaultIndex = appSettings.getProfileIndexByName(appSettings.defaultProfileName)
+            if (defaultIndex !== -1) {
+                profileString = appSettings.profilesList.get(defaultIndex).obj_string
+            } else {
+                profileString = appSettings.composeProfileString()
             }
+        } else {
+            profileString = appSettings.composeProfileString()
         }
-
-        window.destroy()
-
-        if (windowsModel.count === 0) {
-            appSettings.close()
-        }
+        fileIO.launchNewInstance(profileString,
+                                terminalWindow.x + 30,
+                                terminalWindow.y + 30)
     }
 }

@@ -35,3 +35,15 @@ QString FileIO::read(const QString& sourceUrl) {
 
     return result;
 }
+
+void FileIO::launchNewInstance(const QString& profileString, int x, int y) {
+    QStringList args;
+    args << "--child";
+    if (!profileString.isEmpty()) {
+        args << "--profile-string" << profileString;
+    }
+    if (x >= 0 && y >= 0) {
+        args << "--x" << QString::number(x) << "--y" << QString::number(y);
+    }
+    QProcess::startDetached(QCoreApplication::applicationFilePath(), args);
+}

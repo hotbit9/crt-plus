@@ -39,10 +39,22 @@ ColumnLayout {
                 delegate: Rectangle {
                     width: label.width
                     height: label.height
-                    color: (index == profilesView.currentIndex) ? palette.highlight : palette.base
+                    color: {
+                        if (index == appSettings.currentProfileIndex)
+                            return palette.highlight
+                        if (index == profilesView.currentIndex)
+                            return palette.highlight
+                        return palette.base
+                    }
                     Label {
                         id: label
-                        text: appSettings.profilesList.get(index).text
+                        text: {
+                            var name = appSettings.profilesList.get(index).text
+                            if (name === appSettings.defaultProfileName)
+                                return name + " \u2605"
+                            return name
+                        }
+                        font.bold: index == appSettings.currentProfileIndex
                         MouseArea {
                             anchors.fill: parent
                             onClicked: profilesView.currentIndex = index
@@ -75,18 +87,68 @@ ColumnLayout {
                 }
                 Button {
                     Layout.fillWidth: true
+                    text: qsTr("Update")
+                    property alias currentIndex: profilesView.currentIndex
+                    enabled: currentIndex >= 0
+                             && currentIndex === appSettings.currentProfileIndex
+                    onClicked: {
+                        appSettings.profilesList.setProperty(currentIndex, "obj_string",
+                                                             appSettings.composeProfileString())
+                        appSettings.storeCustomProfiles()
+                        appSettings.storage.setSetting("_MODIFIED_BUILTINS",
+                                                       appSettings.composeModifiedBuiltinsString())
+                    }
+                }
+                Button {
+                    Layout.fillWidth: true
+                    text: qsTr("Reset")
+                    property alias currentIndex: profilesView.currentIndex
+                    enabled: currentIndex >= 0
+                             && appSettings.profilesList.get(currentIndex).builtin
+                             && appSettings.isBuiltinProfileModified(currentIndex)
+                    onClicked: {
+                        appSettings.resetBuiltinProfile(currentIndex)
+                        appSettings.loadProfile(currentIndex)
+                    }
+                }
+                Button {
+                    Layout.fillWidth: true
                     text: qsTr("Remove")
                     property alias currentIndex: profilesView.currentIndex
 
                     enabled: currentIndex >= 0 && !appSettings.profilesList.get(
                                  currentIndex).builtin
                     onClicked: {
+                        var removedIndex = currentIndex
+
+                        if (appSettings.profilesList.get(removedIndex).text === appSettings.defaultProfileName) {
+                            appSettings.defaultProfileName = ""
+                            appSettings.storage.setSetting("_DEFAULT_PROFILE_NAME", "")
+                        }
+
                         appSettings.profilesList.remove(currentIndex)
+
+                        if (removedIndex < appSettings.currentProfileIndex) {
+                            appSettings.currentProfileIndex--
+                        } else if (removedIndex === appSettings.currentProfileIndex) {
+                            appSettings.currentProfileIndex = -1
+                        }
+
                         profilesView.selection.clear()
 
                         // TODO This is a very ugly workaround. The view didn't update on Qt 5.3.2.
                         profilesView.model = 0
                         profilesView.model = appSettings.profilesList
+                    }
+                }
+                Button {
+                    Layout.fillWidth: true
+                    text: qsTr("Set Default")
+                    property alias currentIndex: profilesView.currentIndex
+                    enabled: currentIndex >= 0 && appSettings.profilesList.get(
+                                 currentIndex).text !== appSettings.defaultProfileName
+                    onClicked: {
+                        appSettings.setDefaultProfile(currentIndex)
                     }
                 }
                 Item {

@@ -9,8 +9,6 @@
 #include <QQuickStyle>
 #include <QtQml/qqml.h>
 
-#include <kdsingleapplication.h>
-
 #include <QDebug>
 #include <stdlib.h>
 
@@ -24,6 +22,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <QStyleFactory>
 #include <QMenu>
+#include <macutils.h>
 #endif
 
 QString getNamedArgument(QStringList args, QString name, QString defaultName)
@@ -83,18 +82,29 @@ int main(int argc, char *argv[])
 
     QApplication app(argc, argv);
     app.setAttribute(Qt::AA_MacDontSwapCtrlAndMeta, true);
-    app.setApplicationName(QStringLiteral("cool-retro-term"));
-    app.setOrganizationName(QStringLiteral("cool-retro-term"));
-    app.setOrganizationDomain(QStringLiteral("cool-retro-term"));
-    app.setApplicationVersion(appVersion);
 
-    KDSingleApplication singleApp(QStringLiteral("cool-retro-term"));
-
-    if (!singleApp.isPrimaryInstance()) {
-        if (singleApp.sendMessage("new-window"))
-            return 0;
-        qWarning() << "KDSingleApplication: primary not reachable, continuing as independent instance.";
+#if defined(Q_OS_MAC)
+    // App starts as LSUIElement (no dock icon) via Info.plist.
+    // Primary instance promotes itself to Regular to get a dock icon.
+    // Child instances stay hidden.
+    {
+        bool isChild = false;
+        for (int i = 1; i < argc; ++i) {
+            if (!strcmp(argv[i], "--child")) {
+                isChild = true;
+                break;
+            }
+        }
+        if (!isChild) {
+            setRegularApp();
+        }
     }
+#endif
+
+    app.setApplicationName(QStringLiteral("crt-plus"));
+    app.setOrganizationName(QStringLiteral("crt-plus"));
+    app.setOrganizationDomain(QStringLiteral("crt-plus"));
+    app.setApplicationVersion(appVersion);
 
     QQmlApplicationEngine engine;
     FileIO fileIO;
@@ -128,6 +138,12 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("workdir", getNamedArgument(args, "--workdir", "$HOME"));
     engine.rootContext()->setContextProperty("fileIO", &fileIO);
 
+    // Window position for cascade placement
+    QString windowX = getNamedArgument(args, "--x");
+    QString windowY = getNamedArgument(args, "--y");
+    engine.rootContext()->setContextProperty("initialX", windowX.isEmpty() ? QVariant() : QVariant(windowX.toInt()));
+    engine.rootContext()->setContextProperty("initialY", windowY.isEmpty() ? QVariant() : QVariant(windowY.toInt()));
+
     // Manage import paths for Linux and OSX.
     QStringList importPathList = engine.importPathList();
     importPathList.append(QCoreApplication::applicationDirPath() + "/qmltermwidget");
@@ -145,23 +161,11 @@ int main(int argc, char *argv[])
     // Quit the application when the engine closes.
     QObject::connect((QObject*) &engine, SIGNAL(quit()), (QObject*) &app, SLOT(quit()));
 
-    auto requestNewWindow = [&engine]() {
-        if (engine.rootObjects().isEmpty())
-            return;
-
-        QObject *rootObject = engine.rootObjects().constFirst();
-        QMetaObject::invokeMethod(rootObject, "createWindow", Qt::QueuedConnection);
-    };
-
-    QObject::connect(&singleApp, &KDSingleApplication::messageReceived, &app,
-                     [&requestNewWindow](const QByteArray &message) {
-        if (message.isEmpty() || message == QByteArray("new-window"))
-            requestNewWindow();
-    });
-
 #if defined(Q_OS_MAC)
     QMenu *dockMenu = new QMenu(nullptr);
-    dockMenu->addAction(QObject::tr("New Window"), [&requestNewWindow]() { requestNewWindow(); });
+    dockMenu->addAction(QObject::tr("New Window"), [&fileIO]() {
+        fileIO.launchNewInstance(QString());
+    });
     dockMenu->setAsDockMenu();
 #endif
 

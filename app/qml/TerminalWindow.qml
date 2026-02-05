@@ -29,15 +29,12 @@ ApplicationWindow {
     width: 1024
     height: 768
 
-    // Show the window once it is ready.
-    Component.onCompleted: {
-        visible = true
-    }
-
     minimumWidth: 320
     minimumHeight: 240
 
     visible: false
+
+    property string defaultProfileString: ""
 
     property bool fullscreen: false
     onFullscreenChanged: visibility = (fullscreen ? Window.FullScreen : Window.Windowed)
@@ -121,6 +118,7 @@ ApplicationWindow {
         id: terminalTabs
         width: parent.width
         height: (parent.height + Math.abs(y))
+        defaultProfileString: terminalWindow.defaultProfileString
     }
     Loader {
         anchors.centerIn: parent
@@ -131,6 +129,6 @@ ApplicationWindow {
         }
     }
     onClosing: {
-        appRoot.closeWindow(terminalWindow)
+        appSettings.close()
     }
 }

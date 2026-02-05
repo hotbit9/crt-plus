@@ -31,6 +31,12 @@ Item {
     readonly property int count: tabsModel.count
     property size terminalSize: Qt.size(0, 0)
 
+    // Per-tab profile support
+    property int _previousIndex: -1
+    property bool _initialized: false
+    property bool _isLoadingTabProfile: false
+    property string defaultProfileString: ""
+
     function normalizeTitle(rawTitle) {
         if (rawTitle === undefined || rawTitle === null) {
             return ""
@@ -39,7 +45,20 @@ Item {
     }
 
     function addTab() {
-        tabsModel.append({ title: "" })
+        var profile
+        if (defaultProfileString !== "") {
+            profile = defaultProfileString
+        } else if (appSettings.defaultProfileName !== "") {
+            var defaultIndex = appSettings.getProfileIndexByName(appSettings.defaultProfileName)
+            if (defaultIndex !== -1) {
+                profile = appSettings.profilesList.get(defaultIndex).obj_string
+            } else {
+                profile = appSettings.composeProfileString()
+            }
+        } else {
+            profile = appSettings.composeProfileString()
+        }
+        tabsModel.append({ title: "", profileString: profile })
         tabBar.currentIndex = tabsModel.count - 1
     }
 
@@ -49,15 +68,64 @@ Item {
             return
         }
 
+        var wasCurrent = (index === tabBar.currentIndex)
+
         tabsModel.remove(index)
-        tabBar.currentIndex = Math.min(tabBar.currentIndex, tabsModel.count - 1)
+
+        var newIndex = Math.min(tabBar.currentIndex, tabsModel.count - 1)
+        tabBar.currentIndex = newIndex
+        _previousIndex = newIndex
+
+        if (wasCurrent) {
+            loadTabProfile(newIndex)
+        }
+    }
+
+    function loadProfileForCurrentTab(profileString) {
+        appSettings.loadProfileString(profileString)
+        if (tabBar.currentIndex >= 0 && tabBar.currentIndex < tabsModel.count) {
+            tabsModel.setProperty(tabBar.currentIndex, "profileString",
+                                  appSettings.composeProfileString())
+        }
+    }
+
+    function saveCurrentTabProfile(index) {
+        if (index >= 0 && index < tabsModel.count) {
+            tabsModel.setProperty(index, "profileString",
+                                  appSettings.composeProfileString())
+        }
+    }
+
+    function loadTabProfile(index) {
+        if (index >= 0 && index < tabsModel.count) {
+            var profileString = tabsModel.get(index).profileString
+            if (profileString && profileString !== "") {
+                _isLoadingTabProfile = true
+                appSettings.loadProfileString(profileString)
+                _isLoadingTabProfile = false
+            }
+        }
+    }
+
+    Connections {
+        target: appSettings
+        function onProfileChanged() {
+            if (tabsRoot._initialized && !tabsRoot._isLoadingTabProfile
+                && tabBar.currentIndex >= 0 && tabBar.currentIndex < tabsModel.count) {
+                tabsRoot.saveCurrentTabProfile(tabBar.currentIndex)
+            }
+        }
     }
 
     ListModel {
         id: tabsModel
     }
 
-    Component.onCompleted: addTab()
+    Component.onCompleted: {
+        addTab()
+        _previousIndex = 0
+        _initialized = true
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -80,6 +148,24 @@ Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     focusPolicy: Qt.NoFocus
+
+                    onCurrentIndexChanged: {
+                        if (!tabsRoot._initialized) return
+
+                        // Save outgoing tab's profile
+                        if (tabsRoot._previousIndex >= 0
+                            && tabsRoot._previousIndex < tabsModel.count
+                            && tabsRoot._previousIndex !== currentIndex) {
+                            tabsRoot.saveCurrentTabProfile(tabsRoot._previousIndex)
+                        }
+
+                        // Load incoming tab's profile
+                        if (currentIndex >= 0 && currentIndex < tabsModel.count) {
+                            tabsRoot.loadTabProfile(currentIndex)
+                        }
+
+                        tabsRoot._previousIndex = currentIndex
+                    }
 
                     Repeater {
                         model: tabsModel
