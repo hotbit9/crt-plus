@@ -59,6 +59,7 @@ QtObject {
     property real ambientLight: 0.2
     property real contrast: 0.80
     property real brightness: 0.5
+    property bool highImpedance: false  // 75Ω (false) vs Hi-Z (true) - simulates CRT input impedance switch
 
     property bool useCustomCommand: false
     property string customCommand: ""
@@ -67,6 +68,9 @@ QtObject {
     property string _fontColor: "#ff8100"
     property string _frameColor: "#ffffff"
     property string saturatedColor: Utils.mix(Utils.strToColor(_fontColor), Utils.strToColor("#FFFFFF"), (saturationColor * 0.5))
+    // Hi-Z (unterminated) boosts brightness and glow - signal voltage increases without 75Ω termination
+    readonly property real effectiveBrightness: highImpedance ? Math.min(1.0, brightness + 0.35) : brightness
+    readonly property real effectiveBloom: highImpedance ? Math.min(1.0, bloom + 0.3) : bloom
     property color fontColor: Utils.mix(Utils.strToColor(_backgroundColor), Utils.strToColor(saturatedColor), (0.7 + (contrast * 0.3)))
     property color backgroundColor: Utils.mix(Utils.strToColor(saturatedColor), Utils.strToColor(_backgroundColor), (0.7 + (contrast * 0.3)))
 
@@ -196,6 +200,7 @@ QtObject {
             "rgbShift": rgbShift,
             "brightness": brightness,
             "contrast": contrast,
+            "highImpedance": highImpedance,
             "ambientLight": ambientLight,
             "windowOpacity": windowOpacity,
             "fontName": fontName,
@@ -331,6 +336,7 @@ QtObject {
         ambientLight = settings.ambientLight !== undefined ? settings.ambientLight : ambientLight
         contrast = settings.contrast !== undefined ? settings.contrast : contrast
         brightness = settings.brightness !== undefined ? settings.brightness : brightness
+        highImpedance = settings.highImpedance !== undefined ? settings.highImpedance : highImpedance
         windowOpacity = settings.windowOpacity
                 !== undefined ? settings.windowOpacity : windowOpacity
 

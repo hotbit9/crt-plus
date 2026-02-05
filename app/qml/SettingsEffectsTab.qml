@@ -91,6 +91,24 @@ ColumnLayout {
                 onNewValue: function(newValue) { appSettings._frameShininess = newValue }
                 value: appSettings._frameShininess
             }
+            RowLayout {
+                Layout.fillWidth: true
+                Label {
+                    text: qsTr("Impedance")
+                    Layout.preferredWidth: 160
+                }
+                Label {
+                    text: qsTr("75Ω")
+                }
+                Switch {
+                    checked: appSettings.highImpedance
+                    onCheckedChanged: appSettings.highImpedance = checked
+                }
+                Label {
+                    text: qsTr("Hi-Z")
+                }
+                Item { Layout.fillWidth: true }
+            }
         }
     }
 }

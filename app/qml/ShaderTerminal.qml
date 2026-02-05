@@ -109,7 +109,7 @@ Item {
 
         property real frameSize: parent.frameSize
         property real frameShininess: appSettings.frameShininess
-        property real bloom: parent.bloomSource ? appSettings.bloom * 2.5 : 0
+        property real bloom: parent.bloomSource ? appSettings.effectiveBloom * 2.5 : 0
 
         anchors.fill: parent
         blending: false
@@ -170,7 +170,7 @@ Item {
 
         property color fontColor: parent.fontColor
         property color backgroundColor: parent.backgroundColor
-        property real bloom: bloomSource ? appSettings.bloom * 2.5 : 0
+        property real bloom: bloomSource ? appSettings.effectiveBloom * 2.5 : 0
 
         property real screenCurvature: parent.screenCurvature
 
@@ -178,7 +178,7 @@ Item {
 
         property real rgbShift: appSettings.rgbShift * (4.0 / width) * appSettings.totalFontScaling
 
-        property real screen_brightness: Utils.lint(0.5, 1.5, appSettings.brightness)
+        property real screen_brightness: Utils.lint(0.5, 1.5, appSettings.effectiveBrightness)
         property real frameShininess: appSettings.frameShininess
         property real frameSize: parent.frameSize
 
