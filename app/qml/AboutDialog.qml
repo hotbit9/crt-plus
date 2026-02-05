@@ -100,10 +100,16 @@ ApplicationWindow {
                 Layout.alignment: Qt.AlignCenter
                 horizontalAlignment: Text.AlignHCenter
                 color: palette.text
-                text: appSettings.version + "\n" + qsTr(
-                          "Author: ") + "Filippo Scognamiglio\n" + qsTr(
-                          "Email: ") + "flscogna@gmail.com\n" + qsTr(
-                          "Source: ") + "https://github.com/Swordfish90/cool-retro-term\n"
+                linkColor: palette.link
+                textFormat: Text.RichText
+                onLinkActivated: function(link) { Qt.openUrlExternally(link) }
+                text: qsTr("Author: ") + "Filippo Scognamiglio<br>" + qsTr(
+                          "Email: ") + "<a href=\"mailto:flscogna@gmail.com\">flscogna@gmail.com</a><br>" + qsTr(
+                          "Source: ") + "<a href=\"https://github.com/Swordfish90/cool-retro-term\">github.com/Swordfish90/cool-retro-term</a><br><br>"
+                          + appSettings.version + "<br>" + qsTr(
+                          "CRT Plus by: ") + "Alex Fabri<br>" + qsTr(
+                          "Website: ") + "<a href=\"https://fromhelloworld.com\">fromhelloworld.com</a><br>" + qsTr(
+                          "Fork: ") + "<a href=\"https://github.com/hotbit9/cool-retro-term\">github.com/hotbit9/cool-retro-term</a>"
             }
         }
     }
