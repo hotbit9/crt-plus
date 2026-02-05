@@ -1,7 +1,7 @@
 [submodule "qmltermwidget"]
 	path = qmltermwidget
-	url = https://github.com/Swordfish90/qmltermwidget
-	branch = unstable
+	url = https://github.com/hotbit9/qmltermwidget
+	branch = crt-plus
 [submodule "KDSingleApplication"]
 	path = KDSingleApplication
 	url = https://github.com/KDAB/KDSingleApplication.git
