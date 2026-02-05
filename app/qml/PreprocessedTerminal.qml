@@ -260,6 +260,7 @@ Item{
                            (y - cc.height * (1+distortion) * distortion) * (kterminal.totalHeight))
         }
     }
+    // Drop files onto the terminal to paste their escaped paths
     DropArea {
         anchors.fill: parent
         onDropped: function(drop) {

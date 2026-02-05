@@ -48,6 +48,7 @@ QtObject {
 
     property TerminalWindow terminalWindow: TerminalWindow { }
 
+    // Launch a new window as a separate process with the default profile
     function createWindow() {
         var profileString
         if (appSettings.defaultProfileName !== "") {

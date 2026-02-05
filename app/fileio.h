@@ -18,6 +18,7 @@ public:
 public slots:
     bool write(const QString& sourceUrl, const QString& data);
     QString read(const QString& sourceUrl);
+    // Spawn a new process with the given profile and optional window position
     void launchNewInstance(const QString& profileString, int x = -1, int y = -1);
 };
 

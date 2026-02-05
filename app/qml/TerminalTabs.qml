@@ -81,6 +81,7 @@ Item {
         }
     }
 
+    // Load a profile into the current tab (used by context/window menu)
     function loadProfileForCurrentTab(profileString) {
         appSettings.loadProfileString(profileString)
         if (tabBar.currentIndex >= 0 && tabBar.currentIndex < tabsModel.count) {

@@ -137,6 +137,7 @@ QtObject {
         baseFontScaling: baseFontScaling
     }
 
+    // DEFAULT PROFILE ////////////////////////////////////////////////////////
     property string defaultProfileName: ""
     property int currentProfileIndex: -1
     property var builtinProfileDefaults: ({})
