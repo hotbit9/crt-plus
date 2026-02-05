@@ -684,6 +684,40 @@ QtObject {
             builtin: true
         }
         ListElement {
+            text: "MSX"
+            obj_string: '{
+                "ambientLight": 0.3,
+                "backgroundColor": "#2038ec",
+                "bloom": 0.3,
+                "brightness": 0.6,
+                "burnIn": 0.1,
+                "chromaColor": 0,
+                "contrast": 0.8,
+                "flickering": 0.1,
+                "fontColor": "#ffffff",
+                "fontName": "MSX",
+                "fontSource": 0,
+                "fontWidth": 1,
+                "lineSpacing": 0.1,
+                "glowingLine": 0.1,
+                "horizontalSync": 0.0,
+                "jitter": 0.0,
+                "rasterization": 1,
+                "rgbShift": 0.0,
+                "saturationColor": 0,
+                "screenCurvature": 0.4,
+                "screenRadius": 0.2,
+                "staticNoise": 0.1,
+                "windowOpacity": 1,
+                "margin": 0.2,
+                "blinkingCursor": true,
+                "frameSize": 0.4,
+                "frameColor": "#cccccc",
+                "frameShininess": 0.2
+            }'
+            builtin: true
+        }
+        ListElement {
             text: "IBM VGA 8x16"
             obj_string: '{
                 "ambientLight": 0.2,

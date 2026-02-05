@@ -299,6 +299,13 @@ void FontManager::populateBundledFonts()
         true,
         "UNSCII_8_SCALED");
     addBundledFont(
+        "MSX",
+        "MSX",
+        ":/fonts/msx/MSXFont.ttf",
+        1.0,
+        32,
+        false);
+    addBundledFont(
         "IBM_EGA_8x8",
         "IBM EGA 8x8",
         ":/fonts/oldschool-pc-fonts/PxPlus_IBM_EGA_8x8.ttf",
