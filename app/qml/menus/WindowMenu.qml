@@ -60,7 +60,10 @@ MenuBar {
                 required property string obj_string
                 text: appSettings.profilesList.get(index).text
                 enabled: obj_string !== ""
-                onTriggered: terminalTabs.loadProfileForCurrentTab(obj_string)
+                onTriggered: {
+                    appSettings.currentProfileIndex = index
+                    terminalTabs.loadProfileForCurrentTab(obj_string)
+                }
             }
         }
     }
