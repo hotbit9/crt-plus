@@ -19,10 +19,16 @@ Each tab and window maintains its own independent profile. Change the look of on
 - **Update** button to save current settings to the selected profile
 - **Reset** button to restore built-in profiles to their original values
 
+### Profile Menu Sections
+The Profiles menu separates built-in and custom profiles with a visible divider for quick access.
+
 ### 75Ω/Hi-Z Impedance Switch
 Simulates the input termination switch found on real CRT monitors:
 - **75Ω (terminated)** — Normal signal levels
 - **Hi-Z (unterminated)** — Boosted brightness and glow, just like a real overdriven CRT
+
+### Drag & Drop Path Support
+Drag a file or folder into the terminal window and its path is inserted at the cursor — ready for `cd`, `cat`, or any command.
 
 ### macOS Improvements
 - Single dock icon for all windows (child instances run as accessories)
