@@ -1,11 +1,34 @@
-# cool-retro-term
+# CRT Plus
 
-|> Default Amber|C:\ IBM DOS|$ Default Green|
+> **Cool Retro Term — Supercharged**
+
+A fork of [cool-retro-term](https://github.com/Swordfish90/cool-retro-term) with enhanced profile management and authentic CRT simulation features.
+
+|Default Amber|C:\ IBM DOS|$ Default Green|
 |---|---|---|
 |![Default Amber Cool Retro Term](https://user-images.githubusercontent.com/121322/32070717-16708784-ba42-11e7-8572-a8fcc10d7f7d.gif)|![IBM DOS](https://user-images.githubusercontent.com/121322/32070716-16567e5c-ba42-11e7-9e64-ba96dfe9b64d.gif)|![Default Green Cool Retro Term](https://user-images.githubusercontent.com/121322/32070715-163a1c94-ba42-11e7-80bb-41fbf10fc634.gif)|
 
+## New Features
+
+### Per-Tab/Window Profiles
+Each tab and window maintains its own independent profile. Change the look of one terminal without affecting others.
+
+### Default Profile System
+- **Set Default** button to choose which profile loads on startup and for new windows/tabs
+- Star indicator (★) shows which profile is set as default
+- **Update** button to save current settings to the selected profile
+- **Reset** button to restore built-in profiles to their original values
+
+### 75Ω/Hi-Z Impedance Switch
+Simulates the input termination switch found on real CRT monitors:
+- **75Ω (terminated)** — Normal signal levels
+- **Hi-Z (unterminated)** — Boosted brightness and glow, just like a real overdriven CRT
+
+### macOS Improvements
+- Single dock icon for all windows (child instances run as accessories)
+
 ## Description
-cool-retro-term is a terminal emulator which mimics the look and feel of the old cathode tube screens.
+CRT Plus is a terminal emulator which mimics the look and feel of the old cathode tube screens.
 It has been designed to be eye-candy, customizable, and reasonably lightweight.
 
 It uses the QML port of qtermwidget (Konsole): https://github.com/Swordfish90/qmltermwidget.
@@ -19,12 +42,18 @@ Settings such as colors, fonts, and effects can be accessed via context menu.
 ![Image](<https://i.imgur.com/hfjWOM4.png>)
 ![Image](<https://i.imgur.com/GYRDPzJ.jpg>)
 
-## Install
-
-If you want to get a hold of the latest version, just go to the Releases page and grab the latest AppImage (Linux) or dmg (macOS).
-
-Alternatively, most distributions such as Ubuntu, Fedora or Arch already package cool-retro-term in their official repositories.
-
 ## Building
 
-Check out the wiki and follow the instructions on how to build it on [Linux](https://github.com/Swordfish90/cool-retro-term/wiki/Build-Instructions-(Linux)) and [macOS](https://github.com/Swordfish90/cool-retro-term/wiki/Build-Instructions-(macOS)).
+### macOS
+```bash
+brew install qt6
+git clone --recursive https://github.com/hotbit9/cool-retro-term.git
+cd cool-retro-term
+qmake6 && make
+```
+
+### Linux
+Check out the wiki for [Linux build instructions](https://github.com/Swordfish90/cool-retro-term/wiki/Build-Instructions-(Linux)).
+
+## Credits
+Based on [cool-retro-term](https://github.com/Swordfish90/cool-retro-term) by Filippo Scognamiglio.
