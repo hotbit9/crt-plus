@@ -35,16 +35,30 @@ ColumnLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 model: appSettings.profilesList
+                currentIndex: appSettings.currentProfileIndex
                 clip: true
+                section.property: "builtin"
+                section.delegate: Rectangle {
+                    width: profilesView.width
+                    height: sectionLabel.implicitHeight + 4
+                    color: Qt.rgba(palette.text.r, palette.text.g, palette.text.b, 0.08)
+                    Label {
+                        id: sectionLabel
+                        anchors.verticalCenter: parent.verticalCenter
+                        leftPadding: 4
+                        text: section === "true" ? qsTr("Built-in") : qsTr("Custom")
+                        font.italic: true
+                        opacity: 0.6
+                    }
+                }
                 delegate: Rectangle {
-                    width: label.width
+                    width: profilesView.width
                     height: label.height
-                    color: {
-                        if (index == appSettings.currentProfileIndex)
-                            return palette.highlight
-                        if (index == profilesView.currentIndex)
-                            return palette.highlight
-                        return palette.base
+                    color: index == profilesView.currentIndex ? palette.highlight : palette.base
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: profilesView.currentIndex = index
+                        onDoubleClicked: appSettings.loadProfile(index)
                     }
                     Label {
                         id: label
@@ -55,11 +69,6 @@ ColumnLayout {
                             return name
                         }
                         font.bold: index == appSettings.currentProfileIndex
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: profilesView.currentIndex = index
-                            onDoubleClicked: appSettings.loadProfile(index)
-                        }
                     }
                 }
             }
@@ -72,6 +81,7 @@ ColumnLayout {
                     onClicked: {
                         insertname.profileName = ""
                         insertname.show()
+                        feedbackLabel.text = qsTr("✓ Saved"); feedbackTimer.restart()
                     }
                 }
                 Button {
@@ -97,6 +107,7 @@ ColumnLayout {
                         appSettings.storeCustomProfiles()
                         appSettings.storage.setSetting("_MODIFIED_BUILTINS",
                                                        appSettings.composeModifiedBuiltinsString())
+                        feedbackLabel.text = qsTr("✓ Updated"); feedbackTimer.restart()
                     }
                 }
                 Button {
@@ -109,6 +120,7 @@ ColumnLayout {
                     onClicked: {
                         appSettings.resetBuiltinProfile(currentIndex)
                         appSettings.loadProfile(currentIndex)
+                        feedbackLabel.text = qsTr("✓ Reset"); feedbackTimer.restart()
                     }
                 }
                 Button {
@@ -119,26 +131,9 @@ ColumnLayout {
                     enabled: currentIndex >= 0 && !appSettings.profilesList.get(
                                  currentIndex).builtin
                     onClicked: {
-                        var removedIndex = currentIndex
-
-                        if (appSettings.profilesList.get(removedIndex).text === appSettings.defaultProfileName) {
-                            appSettings.defaultProfileName = ""
-                            appSettings.storage.setSetting("_DEFAULT_PROFILE_NAME", "")
-                        }
-
-                        appSettings.profilesList.remove(currentIndex)
-
-                        if (removedIndex < appSettings.currentProfileIndex) {
-                            appSettings.currentProfileIndex--
-                        } else if (removedIndex === appSettings.currentProfileIndex) {
-                            appSettings.currentProfileIndex = -1
-                        }
-
-                        profilesView.selection.clear()
-
-                        // TODO This is a very ugly workaround. The view didn't update on Qt 5.3.2.
-                        profilesView.model = 0
-                        profilesView.model = appSettings.profilesList
+                        confirmRemoveDialog.profileIndex = currentIndex
+                        confirmRemoveDialog.profileName = appSettings.profilesList.get(currentIndex).text
+                        confirmRemoveDialog.open()
                     }
                 }
                 Button {
@@ -149,7 +144,19 @@ ColumnLayout {
                                  currentIndex).text !== appSettings.defaultProfileName
                     onClicked: {
                         appSettings.setDefaultProfile(currentIndex)
+                        feedbackLabel.text = qsTr("✓ Default set"); feedbackTimer.restart()
                     }
+                }
+                Label {
+                    id: feedbackLabel
+                    Layout.fillWidth: true
+                    horizontalAlignment: Text.AlignHCenter
+                    opacity: feedbackTimer.running ? 1.0 : 0.0
+                    Behavior on opacity { NumberAnimation { duration: 200 } }
+                }
+                Timer {
+                    id: feedbackTimer
+                    interval: 2000
                 }
                 Item {
                     // Spacing
@@ -305,6 +312,37 @@ ColumnLayout {
         onNameSelected: {
             appSettings.appendCustomProfile(name,
                                             appSettings.composeProfileString())
+        }
+    }
+    MessageDialog {
+        id: confirmRemoveDialog
+        property int profileIndex: -1
+        property string profileName
+        title: qsTr("Remove Profile")
+        text: qsTr("Remove \"%1\"?").arg(profileName)
+        buttons: MessageDialog.Yes | MessageDialog.No
+        onAccepted: {
+            var removedIndex = profileIndex
+
+            if (appSettings.profilesList.get(removedIndex).text === appSettings.defaultProfileName) {
+                appSettings.defaultProfileName = ""
+                appSettings.storage.setSetting("_DEFAULT_PROFILE_NAME", "")
+            }
+
+            appSettings.profilesList.remove(removedIndex)
+
+            if (removedIndex < appSettings.currentProfileIndex) {
+                appSettings.currentProfileIndex--
+            } else if (removedIndex === appSettings.currentProfileIndex) {
+                appSettings.currentProfileIndex = -1
+            }
+
+            profilesView.selection.clear()
+
+            // TODO This is a very ugly workaround. The view didn't update on Qt 5.3.2.
+            profilesView.model = 0
+            profilesView.model = appSettings.profilesList
+            feedbackLabel.text = qsTr("✓ Removed"); feedbackTimer.restart()
         }
     }
     MessageDialog {
