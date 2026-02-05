@@ -52,8 +52,10 @@ ColumnLayout {
                     }
                 }
                 delegate: Rectangle {
+                    property bool isSeparator: appSettings.profilesList.get(index).obj_string === ""
                     width: profilesView.width
-                    height: label.height
+                    height: isSeparator ? 0 : label.height
+                    visible: !isSeparator
                     color: index == profilesView.currentIndex ? palette.highlight : palette.base
                     MouseArea {
                         anchors.fill: parent

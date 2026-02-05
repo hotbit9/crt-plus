@@ -371,6 +371,9 @@ QtObject {
 
     function loadCustomProfilesString(customProfilesString) {
         var customProfiles = JSON.parse(customProfilesString)
+        if (customProfiles.length > 0) {
+            profilesList.append({"text": "----Custom", "obj_string": "", "builtin": false})
+        }
         for (var i = 0; i < customProfiles.length; i++) {
             var profile = customProfiles[i]
 
@@ -385,7 +388,7 @@ QtObject {
         var customProfiles = []
         for (var i = 0; i < profilesList.count; i++) {
             var profile = profilesList.get(i)
-            if (profile.builtin)
+            if (profile.builtin || profile.obj_string === "") // skip built-in and separator entries
                 continue
             customProfiles.push({
                                     "text": profile.text,
@@ -425,6 +428,14 @@ QtObject {
     }
 
     function appendCustomProfile(name, profileString) {
+        // Add separator before first custom profile
+        var hasCustom = false
+        for (var i = 0; i < profilesList.count; i++) {
+            if (!profilesList.get(i).builtin) { hasCustom = true; break }
+        }
+        if (!hasCustom) {
+            profilesList.append({"text": "----Custom", "obj_string": "", "builtin": false})
+        }
         profilesList.append({
                                 "text": name,
                                 "obj_string": profileString,

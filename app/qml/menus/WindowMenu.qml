@@ -53,16 +53,15 @@ MenuBar {
     Menu {
         id: profilesMenu
         title: qsTr("Profiles")
-        Instantiator {
+        Repeater {
             model: appSettings.profilesList
-            delegate: MenuItem {
-                text: model.text
-                onTriggered: {
-                    terminalTabs.loadProfileForCurrentTab(obj_string)
-                }
+            MenuItem {
+                required property int index
+                required property string obj_string
+                text: appSettings.profilesList.get(index).text
+                enabled: obj_string !== ""
+                onTriggered: terminalTabs.loadProfileForCurrentTab(obj_string)
             }
-            onObjectAdded: function(index, object) { profilesMenu.insertItem(index, object) }
-            onObjectRemoved: function(object) { profilesMenu.removeItem(object) }
         }
     }
     Menu {
