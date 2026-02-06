@@ -24,13 +24,21 @@ import "menus"
 QtObject {
     id: appRoot
 
+    property var windows: []
+    property var activeTerminalWindow: null
+
     property ApplicationSettings appSettings: ApplicationSettings {
         onInitializedSettings: {
-            if (initialX !== undefined && initialY !== undefined) {
-                terminalWindow.x = initialX
-                terminalWindow.y = initialY
+            var defaultProfile = ""
+            if (appSettings.defaultProfileName !== "") {
+                var defaultIndex = appSettings.getProfileIndexByName(appSettings.defaultProfileName)
+                if (defaultIndex !== -1) {
+                    defaultProfile = appSettings.profilesList.get(defaultIndex).obj_string
+                } else {
+                    defaultProfile = appSettings.composeProfileString()
+                }
             }
-            terminalWindow.visible = true
+            createWindow(defaultProfile)
         }
     }
 
@@ -46,23 +54,41 @@ QtObject {
         visible: false
     }
 
-    property TerminalWindow terminalWindow: TerminalWindow { }
+    property Component windowComponent: Component {
+        TerminalWindow { }
+    }
 
-    // Launch a new window as a separate process with the default profile
-    function createWindow() {
-        var profileString
-        if (appSettings.defaultProfileName !== "") {
-            var defaultIndex = appSettings.getProfileIndexByName(appSettings.defaultProfileName)
-            if (defaultIndex !== -1) {
-                profileString = appSettings.profilesList.get(defaultIndex).obj_string
-            } else {
-                profileString = appSettings.composeProfileString()
-            }
-        } else {
-            profileString = appSettings.composeProfileString()
+    function createWindow(profileString) {
+        var win = windowComponent.createObject(appRoot)
+
+        if (profileString && profileString !== "") {
+            win.defaultProfileString = profileString
         }
-        fileIO.launchNewInstance(profileString,
-                                terminalWindow.x + 30,
-                                terminalWindow.y + 30)
+
+        // Cascade position from the last window
+        if (windows.length > 0) {
+            var lastWin = windows[windows.length - 1]
+            win.x = lastWin.x + 30
+            win.y = lastWin.y + 30
+        }
+
+        windows = windows.concat([win])
+        win.visible = true
+    }
+
+    function closeWindow(window) {
+        // Save current tab profile before removing
+        var idx = windows.indexOf(window)
+        if (idx === -1) return
+
+        var newList = windows.slice()
+        newList.splice(idx, 1)
+        windows = newList
+
+        window.destroy()
+
+        if (windows.length === 0) {
+            appSettings.close()
+        }
     }
 }

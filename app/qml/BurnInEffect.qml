@@ -24,17 +24,19 @@ import "utils.js" as Utils
 Loader {
     id: burnInEffect
 
+    property QtObject profileSettings: terminalContainer.profileSettings
+
     property ShaderEffectSource effectSource: item ? item.source : null
 
     property real lastUpdate: 0
     property real prevLastUpdate: 0
 
-    property real burnIn: appSettings.burnIn
+    property real burnIn: profileSettings.burnIn
     property real burnInFadeTime: 1 / Utils.lint(_minBurnInFadeTime, _maxBurnInFadeTime, burnIn)
     property real _minBurnInFadeTime: appSettings.minBurnInFadeTime
     property real _maxBurnInFadeTime: appSettings.maxBurnInFadeTime
 
-    active: appSettings.burnIn !== 0
+    active: profileSettings.burnIn !== 0
 
     anchors.fill: parent
 
@@ -82,7 +84,7 @@ Loader {
             }
             // Restart blurred source settings change.
             Connections {
-                target: appSettings.fontManager
+                target: profileSettings.fontManager
 
                 onTerminalFontChanged: {
                     burnInEffect.restartBlurSource()
@@ -90,7 +92,7 @@ Loader {
             }
 
             Connections {
-                target: appSettings
+                target: profileSettings
 
                 onBurnInChanged: {
                     burnInEffect.restartBlurSource()
@@ -99,6 +101,10 @@ Loader {
                 onRasterizationChanged: {
                     burnInEffect.restartBlurSource()
                 }
+            }
+
+            Connections {
+                target: appSettings
 
                 onBurnInQualityChanged: {
                     burnInEffect.restartBlurSource()

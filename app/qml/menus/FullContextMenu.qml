@@ -82,7 +82,7 @@ Menu {
                 text: appSettings.profilesList.get(index).text
                 enabled: obj_string !== ""
                 onTriggered: {
-                    appSettings.currentProfileIndex = index
+                    terminalWindow.profileSettings.currentProfileIndex = index
                     terminalTabs.loadProfileForCurrentTab(obj_string)
                 }
             }

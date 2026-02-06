@@ -28,6 +28,7 @@ import "utils.js" as Utils
 
 Item{
     id: terminalContainer
+    property QtObject profileSettings
     signal sessionFinished()
 
     property size virtualResolution: Qt.size(kterminal.totalWidth, kterminal.totalHeight)
@@ -39,6 +40,28 @@ Item{
     property real screenScaling: 1.0
     property real scaleTexture: 1.0
     property alias title: ksession.title
+    property string currentDir: ""
+    property string foregroundProcessName: ""
+    signal foregroundProcessChanged()
+    onTitleChanged: currentDir = ksession.currentDir
+
+    Timer {
+        id: _dirPollTimer
+        interval: 2000
+        repeat: true
+        running: true
+        onTriggered: {
+            var dir = ksession.currentDir
+            if (dir !== "" && dir !== terminalContainer.currentDir)
+                terminalContainer.currentDir = dir
+
+            var fg = ksession.foregroundProcessName
+            if (fg !== "" && fg !== terminalContainer.foregroundProcessName) {
+                terminalContainer.foregroundProcessName = fg
+                terminalContainer.foregroundProcessChanged()
+            }
+        }
+    }
     property alias kterminal: kterminal
 
     property size terminalSize: kterminal.terminalSize
@@ -67,6 +90,9 @@ Item{
         onFontScalingChanged: {
             terminalContainer.updateSources()
         }
+    }
+    Connections {
+        target: profileSettings
 
         onFontWidthChanged: {
             terminalContainer.updateSources()
@@ -92,7 +118,7 @@ Item{
         id: kterminal
 
         property int textureResolutionScale: appSettings.lowResolutionFont ? Screen.devicePixelRatio : 1
-        property int margin: appSettings.margin / screenScaling
+        property int margin: profileSettings.margin / screenScaling
         property int totalWidth: Math.floor(parent.width / (screenScaling * fontWidth))
         property int totalHeight: Math.floor(parent.height / screenScaling)
 
@@ -110,7 +136,7 @@ Item{
         }
 
         fullCursorHeight: true
-        blinkingCursor: appSettings.blinkingCursor
+        blinkingCursor: profileSettings.blinkingCursor
 
         colorScheme: "cool-retro-term"
 
@@ -182,12 +208,12 @@ Item{
             forceActiveFocus();
         }
         Component.onCompleted: {
-            appSettings.fontManager.terminalFontChanged.connect(handleFontChanged);
-            appSettings.fontManager.refresh()
+            profileSettings.fontManager.terminalFontChanged.connect(handleFontChanged);
+            profileSettings.fontManager.refresh()
             startSession();
         }
         Component.onDestruction: {
-            appSettings.fontManager.terminalFontChanged.disconnect(handleFontChanged);
+            profileSettings.fontManager.terminalFontChanged.disconnect(handleFontChanged);
         }
     }
 
@@ -208,8 +234,8 @@ Item{
     property alias contextmenu: menuLoader.item
 
     MouseArea {
-        property real margin: appSettings.margin
-        property real frameSize: appSettings.frameSize * terminalWindow.normalizedWindowScale
+        property real margin: profileSettings.margin
+        property real frameSize: profileSettings.frameSize * terminalWindow.normalizedWindowScale
 
         acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
         anchors.fill: parent
@@ -253,7 +279,7 @@ Item{
 
             var cc = Qt.size(0.5 - x, 0.5 - y);
             var distortion = (cc.height * cc.height + cc.width * cc.width)
-                    * appSettings.screenCurvature * appSettings.screenCurvatureSize
+                    * profileSettings.screenCurvature * appSettings.screenCurvatureSize
                     * terminalWindow.normalizedWindowScale;
 
             return Qt.point((x - cc.width  * (1+distortion) * distortion) * (kterminal.totalWidth),

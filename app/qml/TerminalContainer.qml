@@ -24,13 +24,18 @@ import "utils.js" as Utils
 
 ShaderTerminal {
     property alias title: terminal.title
+    property alias currentDir: terminal.currentDir
+    property alias foregroundProcessName: terminal.foregroundProcessName
     property alias terminalSize: terminal.terminalSize
     signal sessionFinished()
+    signal foregroundProcessChanged()
 
-    property bool loadBloomEffect: appSettings.bloom > 0 || appSettings._frameShininess > 0
+    profileSettings: terminalWindow.profileSettings
+
+    property bool loadBloomEffect: profileSettings.bloom > 0 || profileSettings._frameShininess > 0
 
     id: mainShader
-    opacity: appSettings.windowOpacity * 0.3 + 0.7
+    opacity: profileSettings.windowOpacity * 0.3 + 0.7
 
     source: terminal.mainSource
     burnInEffect: terminal.burnInEffect
@@ -43,8 +48,10 @@ ShaderTerminal {
 
     PreprocessedTerminal {
         id: terminal
+        profileSettings: mainShader.profileSettings
         anchors.fill: parent
         onSessionFinished: mainShader.sessionFinished()
+        onForegroundProcessChanged: mainShader.foregroundProcessChanged()
     }
 
     function activate() {

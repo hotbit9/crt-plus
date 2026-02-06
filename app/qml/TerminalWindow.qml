@@ -35,6 +35,11 @@ ApplicationWindow {
     visible: false
 
     property string defaultProfileString: ""
+    property alias profileSettings: profileSettings
+
+    ProfileSettings {
+        id: profileSettings
+    }
 
     property bool fullscreen: false
     onFullscreenChanged: visibility = (fullscreen ? Window.FullScreen : Window.Windowed)
@@ -47,6 +52,44 @@ ApplicationWindow {
 
     title: terminalTabs.currentTitle
 
+    onActiveChanged: {
+        if (!terminalTabs._initialized) return
+        if (active) {
+            appRoot.activeTerminalWindow = terminalWindow
+            terminalTabs.loadTabProfile(terminalTabs.currentIndex)
+        } else {
+            terminalTabs.saveCurrentTabProfile(terminalTabs.currentIndex)
+        }
+    }
+
+    Timer {
+        id: _appSettingsSyncTimer
+        interval: 0
+        onTriggered: {
+            if (appRoot.activeTerminalWindow === terminalWindow && !profileSettings._syncing) {
+                profileSettings.syncFromAppSettings()
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        var scheduleSync = function() { _appSettingsSyncTimer.restart() }
+        var props = [
+            "_backgroundColor", "_fontColor", "_frameColor", "flickering",
+            "horizontalSync", "staticNoise", "chromaColor", "saturationColor",
+            "screenCurvature", "glowingLine", "burnIn", "bloom", "jitter",
+            "rgbShift", "brightness", "contrast", "highImpedance", "ambientLight",
+            "windowOpacity", "_margin", "_frameSize", "_screenRadius",
+            "_frameShininess", "blinkingCursor", "rasterization", "fontSource",
+            "fontName", "fontWidth", "lineSpacing", "currentProfileIndex"
+        ]
+        for (var i = 0; i < props.length; i++) {
+            var sig = appSettings[props[i] + "Changed"]
+            if (sig) sig.connect(scheduleSync)
+        }
+        appSettings.profileChanged.connect(scheduleSync)
+    }
+
     Action {
         id: fullscreenAction
         text: qsTr("Fullscreen")
@@ -55,6 +98,12 @@ ApplicationWindow {
         onTriggered: fullscreen = !fullscreen
         checkable: true
         checked: fullscreen
+    }
+    Action {
+        id: minimizeAction
+        text: qsTr("Minimize")
+        shortcut: appSettings.isMacOS ? "Meta+M" : ""
+        onTriggered: terminalWindow.showMinimized()
     }
     Action {
         id: newWindowAction
@@ -134,7 +183,9 @@ ApplicationWindow {
             terminalSize: terminalTabs.terminalSize
         }
     }
-    onClosing: {
-        appSettings.close()
+    onClosing: function(close) {
+        close.accepted = false
+        profileSettings.syncToAppSettings()
+        appRoot.closeWindow(terminalWindow)
     }
 }

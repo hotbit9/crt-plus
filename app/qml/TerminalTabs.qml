@@ -29,7 +29,7 @@ Item {
     readonly property string currentTitle: {
         var entry = tabsModel.get(currentIndex)
         if (!entry) return "CRT Plus"
-        return displayTitle(entry.customTitle, entry.title, "CRT Plus")
+        return displayTitle(entry.customTitle, entry.title, entry.currentDir)
     }
     property alias currentIndex: tabBar.currentIndex
     readonly property alias tabsModel: tabsModel
@@ -42,15 +42,35 @@ Item {
     property bool _isLoadingTabProfile: false
     property string defaultProfileString: ""
 
-    function displayTitle(customTitle, autoTitle, fallback) {
-        if (customTitle && customTitle !== "") {
-            if (autoTitle && autoTitle !== "")
-                return customTitle + ": " + autoTitle
-            return customTitle
+    property string _homeDir: typeof homeDir !== "undefined" ? homeDir : ""
+
+    function shortDir(path) {
+        if (!path || path === "") return ""
+        if (_homeDir !== "") {
+            if (path === _homeDir)
+                return "~"
+            if (path.indexOf(_homeDir + "/") === 0)
+                return "~/" + path.substring(_homeDir.length + 1)
         }
-        if (autoTitle && autoTitle !== "")
+        return path
+    }
+
+    function displayTitle(customTitle, autoTitle, currentDir) {
+        var dir = shortDir(currentDir)
+        if (customTitle && customTitle !== "") {
+            var suffix = autoTitle && autoTitle !== "" ? ": " + autoTitle : ""
+            if (dir !== "")
+                return customTitle + " (" + dir + ")" + suffix
+            return customTitle + suffix
+        }
+        if (autoTitle && autoTitle !== "") {
+            if (dir !== "")
+                return dir + ": " + autoTitle
             return autoTitle
-        return fallback
+        }
+        if (dir !== "")
+            return dir
+        return "CRT Plus"
     }
 
     function normalizeTitle(rawTitle) {
@@ -58,6 +78,11 @@ Item {
             return ""
         }
         return String(rawTitle).trim()
+    }
+
+    readonly property var _shells: ["zsh", "bash", "fish", "sh", "tcsh", "csh", "ksh", "dash", "login"]
+    function isShellProcess(name) {
+        return _shells.indexOf(name) !== -1
     }
 
     function addTab() {
@@ -69,12 +94,14 @@ Item {
             if (defaultIndex !== -1) {
                 profile = appSettings.profilesList.get(defaultIndex).obj_string
             } else {
-                profile = appSettings.composeProfileString()
+                profile = terminalWindow.profileSettings.composeProfileString()
             }
         } else {
-            profile = appSettings.composeProfileString()
+            profile = terminalWindow.profileSettings.composeProfileString()
         }
-        tabsModel.append({ title: "", customTitle: "", profileString: profile })
+        tabsModel.append({ title: "", customTitle: "", currentDir: "",
+                           profileString: profile,
+                           profileIndex: terminalWindow.profileSettings.currentProfileIndex })
         tabBar.currentIndex = tabsModel.count - 1
     }
 
@@ -99,33 +126,46 @@ Item {
 
     // Load a profile into the current tab (used by context/window menu)
     function loadProfileForCurrentTab(profileString) {
-        appSettings.loadProfileString(profileString)
+        _isLoadingTabProfile = true
+        terminalWindow.profileSettings.loadFromString(profileString)
+        if (appRoot.activeTerminalWindow === terminalWindow) {
+            terminalWindow.profileSettings.syncToAppSettings()
+        }
+        _isLoadingTabProfile = false
         if (tabBar.currentIndex >= 0 && tabBar.currentIndex < tabsModel.count) {
             tabsModel.setProperty(tabBar.currentIndex, "profileString",
-                                  appSettings.composeProfileString())
+                                  terminalWindow.profileSettings.composeProfileString())
+            tabsModel.setProperty(tabBar.currentIndex, "profileIndex",
+                                  terminalWindow.profileSettings.currentProfileIndex)
         }
     }
 
     function saveCurrentTabProfile(index) {
         if (index >= 0 && index < tabsModel.count) {
             tabsModel.setProperty(index, "profileString",
-                                  appSettings.composeProfileString())
+                                  terminalWindow.profileSettings.composeProfileString())
+            tabsModel.setProperty(index, "profileIndex",
+                                  terminalWindow.profileSettings.currentProfileIndex)
         }
     }
 
     function loadTabProfile(index) {
         if (index >= 0 && index < tabsModel.count) {
-            var profileString = tabsModel.get(index).profileString
-            if (profileString && profileString !== "") {
+            var entry = tabsModel.get(index)
+            if (entry.profileString && entry.profileString !== "") {
                 _isLoadingTabProfile = true
-                appSettings.loadProfileString(profileString)
+                terminalWindow.profileSettings.loadFromString(entry.profileString)
+                terminalWindow.profileSettings.currentProfileIndex = entry.profileIndex
+                if (appRoot.activeTerminalWindow === terminalWindow) {
+                    terminalWindow.profileSettings.syncToAppSettings()
+                }
                 _isLoadingTabProfile = false
             }
         }
     }
 
     Connections {
-        target: appSettings
+        target: terminalWindow.profileSettings
         function onProfileChanged() {
             if (tabsRoot._initialized && !tabsRoot._isLoadingTabProfile
                 && tabBar.currentIndex >= 0 && tabBar.currentIndex < tabsModel.count) {
@@ -181,6 +221,8 @@ Item {
         addTab()
         _previousIndex = 0
         _initialized = true
+        terminalWindow.profileSettings.currentProfileIndex = appSettings.currentProfileIndex
+        loadTabProfile(0)
     }
 
     ColumnLayout {
@@ -233,7 +275,7 @@ Item {
                                 spacing: innerPadding
 
                                 Label {
-                                    text: tabsRoot.displayTitle(model.customTitle, model.title, "CRT Plus")
+                                    text: tabsRoot.displayTitle(model.customTitle, model.title, model.currentDir)
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
                                     Layout.alignment: Qt.AlignVCenter
@@ -305,6 +347,11 @@ Item {
                         }
                     }
                     onTitleChanged: tabsModel.setProperty(index, "title", normalizeTitle(title))
+                    onCurrentDirChanged: tabsModel.setProperty(index, "currentDir", currentDir || "")
+                    onForegroundProcessChanged: {
+                        if (isShellProcess(foregroundProcessName))
+                            tabsModel.setProperty(index, "title", "")
+                    }
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     onSessionFinished: tabsRoot.closeTab(index)

@@ -10,6 +10,7 @@
 #include <QtQml/qqml.h>
 
 #include <QDebug>
+#include <QDir>
 #include <stdlib.h>
 
 #include <QLoggingCategory>
@@ -84,21 +85,7 @@ int main(int argc, char *argv[])
     app.setAttribute(Qt::AA_MacDontSwapCtrlAndMeta, true);
 
 #if defined(Q_OS_MAC)
-    // App starts as LSUIElement (no dock icon) via Info.plist.
-    // Primary instance promotes itself to Regular to get a dock icon.
-    // Child instances stay hidden.
-    {
-        bool isChild = false;
-        for (int i = 1; i < argc; ++i) {
-            if (!strcmp(argv[i], "--child")) {
-                isChild = true;
-                break;
-            }
-        }
-        if (!isChild) {
-            setRegularApp();
-        }
-    }
+    setRegularApp();
 #endif
 
     app.setApplicationName(QStringLiteral("crt-plus"));
@@ -136,13 +123,8 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("defaultCmdArgs", commandArgs);
 
     engine.rootContext()->setContextProperty("workdir", getNamedArgument(args, "--workdir", "$HOME"));
+    engine.rootContext()->setContextProperty("homeDir", QDir::homePath());
     engine.rootContext()->setContextProperty("fileIO", &fileIO);
-
-    // Window position for cascade placement
-    QString windowX = getNamedArgument(args, "--x");
-    QString windowY = getNamedArgument(args, "--y");
-    engine.rootContext()->setContextProperty("initialX", windowX.isEmpty() ? QVariant() : QVariant(windowX.toInt()));
-    engine.rootContext()->setContextProperty("initialY", windowY.isEmpty() ? QVariant() : QVariant(windowY.toInt()));
 
     // Manage import paths for Linux and OSX.
     QStringList importPathList = engine.importPathList();
@@ -162,11 +144,14 @@ int main(int argc, char *argv[])
     QObject::connect((QObject*) &engine, SIGNAL(quit()), (QObject*) &app, SLOT(quit()));
 
 #if defined(Q_OS_MAC)
-    QMenu *dockMenu = new QMenu(nullptr);
-    dockMenu->addAction(QObject::tr("New Window"), [&fileIO]() {
-        fileIO.launchNewInstance(QString());
-    });
-    dockMenu->setAsDockMenu();
+    {
+        QObject *rootObject = engine.rootObjects().first();
+        QMenu *dockMenu = new QMenu(nullptr);
+        dockMenu->addAction(QObject::tr("New Window"), [rootObject]() {
+            QMetaObject::invokeMethod(rootObject, "createWindow", Q_ARG(QVariant, QString()));
+        });
+        dockMenu->setAsDockMenu();
+    }
 #endif
 
     return app.exec();

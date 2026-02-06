@@ -61,6 +61,28 @@ MenuBar {
         MenuItem { action: zoomOut }
     }
     Menu {
+        id: windowMenu
+        title: qsTr("Window")
+        MenuItem { action: minimizeAction }
+        MenuSeparator { }
+        Instantiator {
+            model: appRoot.windows
+            delegate: MenuItem {
+                required property var modelData
+                required property int index
+                text: modelData.title || "CRT Plus"
+                checkable: true
+                checked: modelData === terminalWindow
+                onTriggered: {
+                    modelData.raise()
+                    modelData.requestActivate()
+                }
+            }
+            onObjectAdded: (index, object) => windowMenu.insertItem(index + 2, object)
+            onObjectRemoved: (index, object) => windowMenu.removeItem(object)
+        }
+    }
+    Menu {
         id: profilesMenu
         title: qsTr("Profiles")
         Repeater {
@@ -71,7 +93,7 @@ MenuBar {
                 text: appSettings.profilesList.get(index).text
                 enabled: obj_string !== ""
                 onTriggered: {
-                    appSettings.currentProfileIndex = index
+                    terminalWindow.profileSettings.currentProfileIndex = index
                     terminalTabs.loadProfileForCurrentTab(obj_string)
                 }
             }

@@ -20,6 +20,7 @@
         <file>fonts/ibm-3278/3270NerdFontMono-Regular.ttf</file>
         <file>Storage.qml</file>
         <file>SettingsAdvancedTab.qml</file>
+        <file>ProfileSettings.qml</file>
         <file>TerminalContainer.qml</file>
         <file>TerminalTabs.qml</file>
         <file>images/crt256.png</file>
