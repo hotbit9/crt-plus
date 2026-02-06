@@ -26,7 +26,10 @@ Item {
     id: tabsRoot
 
     readonly property int innerPadding: 6
+    // When multiple tabs are open, each tab label shows its own title,
+    // so the window title stays static to avoid duplication.
     readonly property string currentTitle: {
+        if (tabsModel.count > 1) return "CRT Plus"
         var entry = tabsModel.get(currentIndex)
         if (!entry) return "CRT Plus"
         return displayTitle(entry.customTitle, entry.title, entry.currentDir, entry.foregroundProcess, entry.foregroundProcessLabel)
