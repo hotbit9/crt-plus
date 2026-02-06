@@ -27,6 +27,13 @@ Simulates the input termination switch found on real CRT monitors:
 - **75Ω (terminated)** — Normal signal levels
 - **Hi-Z (unterminated)** — Boosted brightness and glow, just like a real overdriven CRT
 
+### Custom Tab Naming
+Set custom names on tabs for better organization when multiple tabs or windows are open.
+- **Rename**: Right-click a tab or use **File > Rename Tab** (Cmd+R / Ctrl+Shift+R)
+- **Reset**: Right-click a tab and select "Reset Name", or use **File > Reset Tab Name**
+- Custom names combine with the terminal's auto-title as `Custom Name: Terminal Title`
+- Clearing the custom name reverts to the terminal's automatic title
+
 ### Drag & Drop Path Support
 Drag a file or folder into the terminal window and its path is inserted at the cursor — ready for `cd`, `cat`, or any command.
 
