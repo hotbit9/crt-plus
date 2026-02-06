@@ -1,6 +1,6 @@
 QT += qml quick widgets sql quickcontrols2
 TARGET = crt-plus
-APP_VERSION = $$system(git -C \"$$PWD/..\" describe --tags --always --dirty=-dirty)
+APP_VERSION = $$system(git -C \"$$PWD/..\" describe --tags --abbrev=0 2>/dev/null)
 isEmpty(APP_VERSION): APP_VERSION = "unknown"
 DEFINES += APP_VERSION=\\\"$$APP_VERSION\\\"
 
