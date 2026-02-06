@@ -35,8 +35,9 @@ for cache in "${QML_CACHES[@]}"; do
     fi
 done
 
-echo "==> Touching resources.qrc to force resource recompilation"
+echo "==> Touching resources.qrc and main.cpp to force recompilation"
 touch "$PROJECT_DIR/app/qml/resources.qrc"
+touch "$PROJECT_DIR/app/main.cpp"
 
 echo "==> Building ($NCPU parallel jobs)"
 cd "$PROJECT_DIR"
