@@ -27,18 +27,20 @@ Simulates the input termination switch found on real CRT monitors:
 - **75Ω (terminated)** — Normal signal levels
 - **Hi-Z (unterminated)** — Boosted brightness and glow, just like a real overdriven CRT
 
-### Custom Tab Naming
-Set custom names on tabs for better organization when multiple tabs or windows are open.
+### Dynamic Window & Tab Titles
+Titles update automatically as you work, showing the current directory with `~` substitution — just like macOS Terminal.
+- Default display: `~/Projects` or `~/Projects: vim`
+- When a CLI app sets its own title, it shows until the app exits, then reverts to the directory
 - **Rename**: Right-click a tab or use **File > Rename Tab** (Cmd+R / Ctrl+Shift+R)
 - **Reset**: Right-click a tab and select "Reset Name", or use **File > Reset Tab Name**
-- Custom names combine with the terminal's auto-title as `Custom Name: Terminal Title`
-- Clearing the custom name reverts to the terminal's automatic title
+- Custom names show as `Custom Name (~/dir)` or `Custom Name (~/dir): process`
 
 ### Drag & Drop Path Support
 Drag a file or folder into the terminal window and its path is inserted at the cursor — ready for `cd`, `cat`, or any command.
 
 ### macOS Improvements
-- Single dock icon for all windows (child instances run as accessories)
+- Multi-window support with a single dock icon
+- New Window from dock menu (right-click)
 
 ## Description
 CRT Plus is a terminal emulator which mimics the look and feel of the old cathode tube screens.
