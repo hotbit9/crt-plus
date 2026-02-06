@@ -29,6 +29,16 @@ MenuBar {
         MenuItem { action: newWindowAction }
         MenuItem { action: newTabAction }
         MenuSeparator { }
+        MenuItem { action: renameTabAction }
+        MenuItem {
+            text: qsTr("Reset Tab Name")
+            enabled: {
+                var entry = terminalTabs.tabsModel.get(terminalTabs.currentIndex)
+                return entry ? entry.customTitle !== "" : false
+            }
+            onTriggered: terminalTabs.resetCustomTitle(terminalTabs.currentIndex)
+        }
+        MenuSeparator { }
         MenuItem { action: quitAction }
     }
     Menu {

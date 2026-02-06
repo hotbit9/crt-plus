@@ -26,8 +26,13 @@ Item {
     id: tabsRoot
 
     readonly property int innerPadding: 6
-    readonly property string currentTitle: tabsModel.get(currentIndex).title ?? "cool-retro-term"
+    readonly property string currentTitle: {
+        var entry = tabsModel.get(currentIndex)
+        if (!entry) return "CRT Plus"
+        return displayTitle(entry.customTitle, entry.title, "CRT Plus")
+    }
     property alias currentIndex: tabBar.currentIndex
+    readonly property alias tabsModel: tabsModel
     readonly property int count: tabsModel.count
     property size terminalSize: Qt.size(0, 0)
 
@@ -36,6 +41,17 @@ Item {
     property bool _initialized: false
     property bool _isLoadingTabProfile: false
     property string defaultProfileString: ""
+
+    function displayTitle(customTitle, autoTitle, fallback) {
+        if (customTitle && customTitle !== "") {
+            if (autoTitle && autoTitle !== "")
+                return customTitle + ": " + autoTitle
+            return customTitle
+        }
+        if (autoTitle && autoTitle !== "")
+            return autoTitle
+        return fallback
+    }
 
     function normalizeTitle(rawTitle) {
         if (rawTitle === undefined || rawTitle === null) {
@@ -58,7 +74,7 @@ Item {
         } else {
             profile = appSettings.composeProfileString()
         }
-        tabsModel.append({ title: "", profileString: profile })
+        tabsModel.append({ title: "", customTitle: "", profileString: profile })
         tabBar.currentIndex = tabsModel.count - 1
     }
 
@@ -122,6 +138,45 @@ Item {
         id: tabsModel
     }
 
+    property int _renameTabIndex: -1
+
+    function resetCustomTitle(tabIndex) {
+        if (tabIndex >= 0 && tabIndex < tabsModel.count) {
+            tabsModel.setProperty(tabIndex, "customTitle", "")
+        }
+    }
+
+    function openRenameDialog(tabIndex) {
+        _renameTabIndex = tabIndex
+        var entry = tabsModel.get(tabIndex)
+        renameField.text = entry.customTitle !== "" ? entry.customTitle : entry.title
+        renameDialog.open()
+        renameField.selectAll()
+        renameField.forceActiveFocus()
+    }
+
+    Dialog {
+        id: renameDialog
+        title: qsTr("Rename Tab")
+        anchors.centerIn: parent
+        modal: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        onAccepted: {
+            if (_renameTabIndex >= 0 && _renameTabIndex < tabsModel.count) {
+                tabsModel.setProperty(_renameTabIndex, "customTitle", renameField.text.trim())
+            }
+        }
+        RowLayout {
+            anchors.fill: parent
+            Label { text: qsTr("Name:") }
+            TextField {
+                id: renameField
+                Layout.fillWidth: true
+                onAccepted: renameDialog.accept()
+            }
+        }
+    }
+
     Component.onCompleted: {
         addTab()
         _previousIndex = 0
@@ -178,7 +233,7 @@ Item {
                                 spacing: innerPadding
 
                                 Label {
-                                    text: model.title
+                                    text: tabsRoot.displayTitle(model.customTitle, model.title, "CRT Plus")
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
                                     Layout.alignment: Qt.AlignVCenter
@@ -192,6 +247,32 @@ Item {
                                     onClicked: tabsRoot.closeTab(index)
                                 }
                             }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                acceptedButtons: Qt.RightButton
+                                onClicked: {
+                                    tabContextMenu.tabIndex = index
+                                    tabContextMenu.hasCustomTitle = (model.customTitle !== "")
+                                    tabContextMenu.popup()
+                                }
+                            }
+                        }
+                    }
+
+                    Menu {
+                        id: tabContextMenu
+                        property int tabIndex: -1
+                        property bool hasCustomTitle: false
+                        MenuItem {
+                            text: qsTr("Rename Tab…")
+                            onTriggered: tabsRoot.openRenameDialog(tabContextMenu.tabIndex)
+                        }
+                        MenuItem {
+                            text: qsTr("Reset Name")
+                            visible: tabContextMenu.hasCustomTitle
+                            height: visible ? implicitHeight : 0
+                            onTriggered: tabsRoot.resetCustomTitle(tabContextMenu.tabIndex)
                         }
                     }
                 }

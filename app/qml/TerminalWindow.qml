@@ -114,6 +114,12 @@ ApplicationWindow {
         shortcut: appSettings.isMacOS ? StandardKey.AddTab : "Ctrl+Shift+T"
         onTriggered: terminalTabs.addTab()
     }
+    Action {
+        id: renameTabAction
+        text: qsTr("Rename Tab…")
+        shortcut: appSettings.isMacOS ? "Meta+R" : "Ctrl+Shift+R"
+        onTriggered: terminalTabs.openRenameDialog(terminalTabs.currentIndex)
+    }
     TerminalTabs {
         id: terminalTabs
         width: parent.width
