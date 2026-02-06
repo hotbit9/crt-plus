@@ -29,7 +29,7 @@ Item {
     readonly property string currentTitle: {
         var entry = tabsModel.get(currentIndex)
         if (!entry) return "CRT Plus"
-        return displayTitle(entry.customTitle, entry.title, entry.currentDir)
+        return displayTitle(entry.customTitle, entry.title, entry.currentDir, entry.foregroundProcess, entry.foregroundProcessLabel)
     }
     property alias currentIndex: tabBar.currentIndex
     readonly property alias tabsModel: tabsModel
@@ -55,22 +55,50 @@ Item {
         return path
     }
 
-    function displayTitle(customTitle, autoTitle, currentDir) {
-        var dir = shortDir(currentDir)
+    // Build display title from tab state. Title format depends on context:
+    //   Local:  dir | dir : appTitle | CustomName — dir [appTitle]
+    //   Remote: user@host | user@host: remoteTitle | CustomName — user@host: remoteTitle
+    // autoTitle is suppressed at shell prompts to avoid showing stale values from
+    // a previous program (the terminal session retains the last escape-sequence title
+    // even after the program exits, so onTitleChanged won't re-fire for the same value).
+    function displayTitle(customTitle, autoTitle, currentDir, fgProcess, fgLabel) {
+        var remote = isRemoteProcess(fgProcess)
+        var shell = isShellProcess(fgProcess)
+        var label = (fgLabel && fgLabel !== "") ? fgLabel : fgProcess
+        var dir = remote ? "" : shortDir(currentDir)
+        var title = (shell || !autoTitle) ? "" : autoTitle
         if (customTitle && customTitle !== "") {
-            var suffix = autoTitle && autoTitle !== "" ? ": " + autoTitle : ""
+            if (remote && title !== "")
+                return customTitle + " \u2014 " + remoteTitle(label, title)
+            if (remote)
+                return customTitle + " \u2014 " + label
+            var suffix = title !== "" ? " [" + title + "]" : ""
             if (dir !== "")
-                return customTitle + " (" + dir + ")" + suffix
+                return customTitle + " \u2014 " + dir + suffix
             return customTitle + suffix
         }
-        if (autoTitle && autoTitle !== "") {
+        if (remote) {
+            if (title !== "")
+                return remoteTitle(label, title)
+            return label
+        }
+        if (title !== "") {
             if (dir !== "")
-                return dir + ": " + autoTitle
-            return autoTitle
+                return dir + " : " + title
+            return title
         }
         if (dir !== "")
             return dir
         return "CRT Plus"
+    }
+
+    function remoteTitle(label, autoTitle) {
+        // If autoTitle already contains the SSH label (e.g. shell set
+        // "user@host: ~/path"), use it as-is to avoid redundancy.
+        // Otherwise prefix with the label (e.g. "user@host: Claude Code").
+        if (autoTitle.indexOf(label) !== -1)
+            return autoTitle
+        return label + ": " + autoTitle
     }
 
     function normalizeTitle(rawTitle) {
@@ -83,6 +111,12 @@ Item {
     readonly property var _shells: ["zsh", "bash", "fish", "sh", "tcsh", "csh", "ksh", "dash", "login"]
     function isShellProcess(name) {
         return _shells.indexOf(name) !== -1
+    }
+
+    // Remote processes: hide stale local currentDir, use escape-sequence title instead
+    readonly property var _remoteProcesses: ["ssh", "mosh", "telnet", "rlogin"]
+    function isRemoteProcess(name) {
+        return _remoteProcesses.indexOf(name) !== -1
     }
 
     function addTab() {
@@ -100,6 +134,7 @@ Item {
             profile = terminalWindow.profileSettings.composeProfileString()
         }
         tabsModel.append({ title: "", customTitle: "", currentDir: "",
+                           foregroundProcess: "", foregroundProcessLabel: "",
                            profileString: profile,
                            profileIndex: terminalWindow.profileSettings.currentProfileIndex })
         tabBar.currentIndex = tabsModel.count - 1
@@ -275,7 +310,7 @@ Item {
                                 spacing: innerPadding
 
                                 Label {
-                                    text: tabsRoot.displayTitle(model.customTitle, model.title, model.currentDir)
+                                    text: tabsRoot.displayTitle(model.customTitle, model.title, model.currentDir, model.foregroundProcess, model.foregroundProcessLabel)
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
                                     Layout.alignment: Qt.AlignVCenter
@@ -349,8 +384,8 @@ Item {
                     onTitleChanged: tabsModel.setProperty(index, "title", normalizeTitle(title))
                     onCurrentDirChanged: tabsModel.setProperty(index, "currentDir", currentDir || "")
                     onForegroundProcessChanged: {
-                        if (isShellProcess(foregroundProcessName))
-                            tabsModel.setProperty(index, "title", "")
+                        tabsModel.setProperty(index, "foregroundProcess", foregroundProcessName)
+                        tabsModel.setProperty(index, "foregroundProcessLabel", foregroundProcessLabel)
                     }
                     Layout.fillWidth: true
                     Layout.fillHeight: true

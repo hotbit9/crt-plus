@@ -42,6 +42,7 @@ Item{
     property alias title: ksession.title
     property string currentDir: ""
     property string foregroundProcessName: ""
+    property string foregroundProcessLabel: ""
     signal foregroundProcessChanged()
     onTitleChanged: currentDir = ksession.currentDir
 
@@ -56,9 +57,13 @@ Item{
                 terminalContainer.currentDir = dir
 
             var fg = ksession.foregroundProcessName
+            var label = ksession.foregroundProcessLabel
             if (fg !== "" && fg !== terminalContainer.foregroundProcessName) {
                 terminalContainer.foregroundProcessName = fg
+                terminalContainer.foregroundProcessLabel = label
                 terminalContainer.foregroundProcessChanged()
+            } else if (label !== terminalContainer.foregroundProcessLabel) {
+                terminalContainer.foregroundProcessLabel = label
             }
         }
     }

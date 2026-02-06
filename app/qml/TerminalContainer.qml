@@ -26,6 +26,7 @@ ShaderTerminal {
     property alias title: terminal.title
     property alias currentDir: terminal.currentDir
     property alias foregroundProcessName: terminal.foregroundProcessName
+    property alias foregroundProcessLabel: terminal.foregroundProcessLabel
     property alias terminalSize: terminal.terminalSize
     signal sessionFinished()
     signal foregroundProcessChanged()
