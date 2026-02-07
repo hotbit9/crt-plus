@@ -66,6 +66,29 @@ ColumnLayout {
                 checked: appSettings.showMenubar
                 onCheckedChanged: appSettings.showMenubar = checked
             }
+            Label {
+                text: qsTr("Editor command for clickable paths")
+                Layout.topMargin: 8
+            }
+            TextField {
+                id: editorCommand
+                Layout.fillWidth: true
+                text: appSettings.editorCommand
+                placeholderText: qsTr("Auto-detect (code, subl, vim...)")
+                onEditingFinished: appSettings.editorCommand = text
+                function saveSetting() { appSettings.editorCommand = text }
+                Component.onCompleted: settings_window.closing.connect(saveSetting)
+            }
+            Label { text: qsTr("Remote editor (used over SSH)") }
+            TextField {
+                id: remoteEditorCommand
+                Layout.fillWidth: true
+                text: appSettings.remoteEditorCommand
+                placeholderText: qsTr("Default: vim")
+                onEditingFinished: appSettings.remoteEditorCommand = text
+                function saveSetting() { appSettings.remoteEditorCommand = text }
+                Component.onCompleted: settings_window.closing.connect(saveSetting)
+            }
         }
     }
 

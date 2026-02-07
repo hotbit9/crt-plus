@@ -222,6 +222,7 @@ Item{
         Component.onCompleted: {
             profileSettings.fontManager.terminalFontChanged.connect(handleFontChanged);
             profileSettings.fontManager.refresh()
+            kterminal.setFilePathEditorCommand(appSettings.editorCommand)
             startSession();
         }
         Component.onDestruction: {
@@ -271,6 +272,19 @@ Item{
                 contextmenu.popup();
             } else {
                 var coord = correctDistortion(mouse.x, mouse.y);
+                // Cmd+click (macOS) / Ctrl+click (Linux) opens file paths and URLs
+                var modKey = appSettings.isMacOS ? Qt.MetaModifier : Qt.ControlModifier
+                if (mouse.button === Qt.LeftButton && (mouse.modifiers & modKey)) {
+                    var hotType = kterminal.hotSpotTypeAt(coord.x, coord.y)
+                    if (hotType > 0) {
+                        if (_isRemoteSession() && hotType === 4 /* FilePath */) {
+                            _openRemoteFile(coord.x, coord.y)
+                        } else {
+                            kterminal.activateHotSpotAt(coord.x, coord.y, "click-action")
+                        }
+                        return
+                    }
+                }
                 kterminal.simulateMousePress(coord.x, coord.y, mouse.button, mouse.buttons, mouse.modifiers)
             }
         }
@@ -319,6 +333,30 @@ Item{
             path = path.replace(/[\n\r\t]/g, '')
             return path.replace(/[ !"#$&'()*,;<>?\\[\]^`{|}~]/g, '\\$&');
         }
+    }
+
+    // Keep file path filter working directory in sync
+    Connections {
+        target: terminalContainer
+        onCurrentDirChanged: kterminal.setFilePathWorkDir(terminalContainer.currentDir)
+    }
+    Connections {
+        target: appSettings
+        onEditorCommandChanged: kterminal.setFilePathEditorCommand(appSettings.editorCommand)
+    }
+
+    function _isRemoteSession() {
+        var fg = terminalContainer.foregroundProcessName
+        return fg === "ssh" || fg === "mosh" || fg === "telnet" || fg === "rlogin"
+    }
+
+    function _openRemoteFile(x, y) {
+        var info = kterminal.hotSpotFilePathAt(x, y)
+        if (info === "") return
+        var parts = info.split(":")
+        var path = parts[0], line = parts[1] || "1"
+        var editor = appSettings.remoteEditorCommand || "vim"
+        ksession.sendText(editor + " +" + line + " " + path + "\n")
     }
 
     ShaderEffectSource{

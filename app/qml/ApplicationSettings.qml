@@ -64,6 +64,9 @@ QtObject {
     property bool useCustomCommand: false
     property string customCommand: ""
 
+    property string editorCommand: ""
+    property string remoteEditorCommand: ""
+
     property string _backgroundColor: "#000000"
     property string _fontColor: "#ff8100"
     property string _frameColor: "#ffffff"
@@ -178,7 +181,9 @@ QtObject {
             "bloomQuality": bloomQuality,
             "burnInQuality": burnInQuality,
             "useCustomCommand": useCustomCommand,
-            "customCommand": customCommand
+            "customCommand": customCommand,
+            "editorCommand": editorCommand,
+            "remoteEditorCommand": remoteEditorCommand
         }
         return stringify(settings)
     }
@@ -304,6 +309,11 @@ QtObject {
                 !== undefined ? settings.useCustomCommand : useCustomCommand
         customCommand = settings.customCommand
                 !== undefined ? settings.customCommand : customCommand
+
+        editorCommand = settings.editorCommand
+                !== undefined ? settings.editorCommand : editorCommand
+        remoteEditorCommand = settings.remoteEditorCommand
+                !== undefined ? settings.remoteEditorCommand : remoteEditorCommand
     }
 
     function loadProfileString(profileString) {
