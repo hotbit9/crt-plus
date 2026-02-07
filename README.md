@@ -35,6 +35,15 @@ Titles update automatically as you work, showing the current directory with `~` 
 - **Reset**: Right-click a tab and select "Reset Name", or use **File > Reset Tab Name**
 - Custom names show as `Custom Name (~/dir)` or `Custom Name (~/dir): process`
 
+### Split Panes
+Split any terminal into multiple panes for side-by-side workflows:
+- **Split Right**: Cmd+D (Ctrl+Shift+D on Linux)
+- **Split Down**: Cmd+Shift+D (Ctrl+Shift+E on Linux)
+- **Navigate**: Cmd+] / Cmd+[ to cycle focus between panes
+- **Close Pane**: Cmd+Shift+W
+- Each pane maintains its own independent profile, directory, and process tracking
+- Panes can be split recursively — split any pane further in either direction
+
 ### Drag & Drop Path Support
 Drag a file or folder into the terminal window and its path is inserted at the cursor — ready for `cd`, `cat`, or any command.
 
