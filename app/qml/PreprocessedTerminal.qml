@@ -315,6 +315,8 @@ Item{
         }
 
         function escapeShellPath(path) {
+            // Remove control characters that could act as command separators
+            path = path.replace(/[\n\r\t]/g, '')
             return path.replace(/[ !"#$&'()*,;<>?\\[\]^`{|}~]/g, '\\$&');
         }
     }

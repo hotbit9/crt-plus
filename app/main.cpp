@@ -54,7 +54,7 @@ private:
 QString getNamedArgument(QStringList args, QString name, QString defaultName)
 {
     int index = args.indexOf(name);
-    return (index != -1) ? args[index + 1] : QString(defaultName);
+    return (index != -1 && index + 1 < args.size()) ? args[index + 1] : QString(defaultName);
 }
 
 QString getNamedArgument(QStringList args, QString name)

@@ -1,7 +1,16 @@
 #include "fileio.h"
+#include <QStandardPaths>
 
 FileIO::FileIO()
 {
+}
+
+// Reject paths outside the user's home directory to prevent misuse
+static bool isPathAllowed(const QString& path) {
+    if (path.isEmpty())
+        return false;
+    QString home = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
+    return !home.isEmpty() && path.startsWith(home);
 }
 
 bool FileIO::write(const QString& sourceUrl, const QString& data) {
@@ -9,7 +18,11 @@ bool FileIO::write(const QString& sourceUrl, const QString& data) {
         return false;
 
     QUrl url(sourceUrl);
-    QFile file(url.toLocalFile());
+    QString path = url.toLocalFile();
+    if (!isPathAllowed(path))
+        return false;
+
+    QFile file(path);
     if (!file.open(QFile::WriteOnly | QFile::Truncate))
         return false;
 
@@ -24,7 +37,11 @@ QString FileIO::read(const QString& sourceUrl) {
         return "";
 
     QUrl url(sourceUrl);
-    QFile file(url.toLocalFile());
+    QString path = url.toLocalFile();
+    if (!isPathAllowed(path))
+        return "";
+
+    QFile file(path);
     if (!file.open(QFile::ReadOnly))
         return "";
 
