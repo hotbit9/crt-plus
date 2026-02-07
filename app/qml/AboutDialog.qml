@@ -34,7 +34,7 @@ ApplicationWindow {
         spacing: 15
         Text {
             Layout.alignment: Qt.AlignHCenter
-            text: "cool-retro-term"
+            text: "CRT Plus"
             color: palette.text
             font {
                 bold: true
@@ -88,13 +88,39 @@ ApplicationWindow {
         ColumnLayout {
             anchors.fill: parent
             spacing: 10
-            Image {
+            Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.alignment: Qt.AlignHCenter
-                fillMode: Image.PreserveAspectFit
-                source: "images/crt256.png"
-                smooth: true
+                Canvas {
+                    id: iconCanvas
+                    width: Math.min(parent.width, parent.height)
+                    height: width
+                    anchors.centerIn: parent
+                    property real cornerRadius: width * 0.22
+                    onPaint: {
+                        var ctx = getContext("2d")
+                        ctx.clearRect(0, 0, width, height)
+                        ctx.save()
+                        var r = cornerRadius, w = width, h = height
+                        ctx.beginPath()
+                        ctx.moveTo(r, 0)
+                        ctx.lineTo(w - r, 0)
+                        ctx.arcTo(w, 0, w, r, r)
+                        ctx.lineTo(w, h - r)
+                        ctx.arcTo(w, h, w - r, h, r)
+                        ctx.lineTo(r, h)
+                        ctx.arcTo(0, h, 0, h - r, r)
+                        ctx.lineTo(0, r)
+                        ctx.arcTo(0, 0, r, 0, r)
+                        ctx.closePath()
+                        ctx.clip()
+                        ctx.drawImage("images/crt256.png", 0, 0, w, h)
+                        ctx.restore()
+                    }
+                    Component.onCompleted: loadImage("images/crt256.png")
+                    onImageLoaded: requestPaint()
+                }
             }
             Text {
                 Layout.alignment: Qt.AlignCenter
@@ -103,13 +129,13 @@ ApplicationWindow {
                 linkColor: palette.link
                 textFormat: Text.RichText
                 onLinkActivated: function(link) { Qt.openUrlExternally(link) }
-                text: qsTr("Author: ") + "Filippo Scognamiglio<br>" + qsTr(
-                          "Email: ") + "<a href=\"mailto:flscogna@gmail.com\">flscogna@gmail.com</a><br>" + qsTr(
-                          "Source: ") + "<a href=\"https://github.com/Swordfish90/cool-retro-term\">github.com/Swordfish90/cool-retro-term</a><br><br>"
-                          + appSettings.version + "<br>" + qsTr(
-                          "CRT Plus by: ") + "Alex Fabri<br>" + qsTr(
+                text: appSettings.version + "<br><br>"
+                          + qsTr("By: ") + "Alex Fabri<br>" + qsTr(
                           "Website: ") + "<a href=\"https://fromhelloworld.com\">fromhelloworld.com</a><br>" + qsTr(
-                          "Fork: ") + "<a href=\"https://github.com/hotbit9/cool-retro-term\">github.com/hotbit9/cool-retro-term</a>"
+                          "Source: ") + "<a href=\"https://github.com/hotbit9/cool-retro-term\">github.com/hotbit9/cool-retro-term</a><br><br>"
+                          + qsTr("Based on cool-retro-term by: ") + "Filippo Scognamiglio<br>" + qsTr(
+                          "Email: ") + "<a href=\"mailto:flscogna@gmail.com\">flscogna@gmail.com</a><br>" + qsTr(
+                          "Source: ") + "<a href=\"https://github.com/Swordfish90/cool-retro-term\">github.com/Swordfish90/cool-retro-term</a>"
             }
         }
     }
