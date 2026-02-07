@@ -35,6 +35,7 @@ ApplicationWindow {
     visible: false
 
     property string defaultProfileString: ""
+    property string initialWorkDir: ""
     property alias profileSettings: profileSettings
     readonly property int badgeCount: terminalTabs.totalBadgeCount
 
@@ -130,6 +131,7 @@ ApplicationWindow {
     Action {
         id: showsettingsAction
         text: qsTr("Settings")
+        shortcut: appSettings.isMacOS ? "Meta+," : ""
         onTriggered: {
             settingsWindow.show()
             settingsWindow.requestActivate()

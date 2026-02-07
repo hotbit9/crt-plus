@@ -38,6 +38,7 @@ Item {
     property bool isFocused: true
     property bool _skipAutoCreate: false
     property bool _alive: true
+    property string initialWorkDir: ""
     property bool _syncingPaneProfile: false
     property var _splitPaneComponentCache: null
 
@@ -509,7 +510,10 @@ Item {
     Component.onCompleted: {
         if (isLeaf && !terminal && !_skipAutoCreate) {
             paneProfileSettings = _createPaneProfile()
-            var t = terminalComponent.createObject(splitPaneRoot)
+            var props = {}
+            if (initialWorkDir !== "")
+                props.initialWorkDir = initialWorkDir
+            var t = terminalComponent.createObject(splitPaneRoot, props)
             t.profileSettings = paneProfileSettings
             _connectTerminal(t)
             terminal = t

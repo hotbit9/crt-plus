@@ -27,6 +27,19 @@ MenuBar {
     Menu {
         title: qsTr("File")
         MenuItem { action: newWindowAction }
+        Menu {
+            title: qsTr("New Window with Profile")
+            Repeater {
+                model: appSettings.profilesList
+                MenuItem {
+                    required property int index
+                    required property string obj_string
+                    text: appSettings.profilesList.get(index).text
+                    enabled: obj_string !== ""
+                    onTriggered: appRoot.createWindow(obj_string)
+                }
+            }
+        }
         MenuItem { action: newTabAction }
         MenuSeparator { }
         MenuItem { action: renameTabAction }

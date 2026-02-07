@@ -36,7 +36,7 @@
         <file>fonts/bigblue-terminal/BigBlueTerm437NerdFontMono-Regular.ttf</file>
         <file>fonts/iosevka/IosevkaTermNerdFontMono-Regular.ttf</file>
         <file>fonts/jetbrains-mono/JetBrainsMonoNerdFontMono-Regular.ttf</file>
-        <file>../icons/32x32/cool-retro-term.png</file>
+        <file>../icons/32x32/crt-plus.png</file>
         <file>Components/SizedLabel.qml</file>
         <file>fonts/atari-400-800/AtariClassic-Regular.ttf</file>
         <file>fonts/pet-me/PetMe64.ttf</file>

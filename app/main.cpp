@@ -11,6 +11,8 @@
 
 #include <QDebug>
 #include <QDir>
+#include <QFileInfo>
+#include <QFileOpenEvent>
 #include <stdlib.h>
 
 #include <QLoggingCategory>
@@ -26,6 +28,28 @@
 #include <macutils.h>
 #include "badgehelper.h"
 #endif
+
+class FileOpenHandler : public QObject {
+public:
+    FileOpenHandler(QObject *rootObject, QObject *parent = nullptr)
+        : QObject(parent), m_rootObject(rootObject) {}
+protected:
+    bool eventFilter(QObject *, QEvent *event) override {
+        if (event->type() == QEvent::FileOpen) {
+            auto *fileEvent = static_cast<QFileOpenEvent *>(event);
+            QFileInfo info(fileEvent->file());
+            if (info.isDir()) {
+                QMetaObject::invokeMethod(m_rootObject, "createWindow",
+                    Q_ARG(QVariant, QString("")),
+                    Q_ARG(QVariant, info.absoluteFilePath()));
+                return true;
+            }
+        }
+        return false;
+    }
+private:
+    QObject *m_rootObject;
+};
 
 QString getNamedArgument(QStringList args, QString name, QString defaultName)
 {
@@ -101,12 +125,12 @@ int main(int argc, char *argv[])
     qmlRegisterUncreatableType<FontListModel>("CoolRetroTerm", 1, 0, "FontListModel", "FontListModel is created by FontManager");
 
 #if !defined(Q_OS_MAC)
-    app.setWindowIcon(QIcon::fromTheme("cool-retro-term", QIcon(":../icons/32x32/cool-retro-term.png")));
+    app.setWindowIcon(QIcon::fromTheme("crt-plus", QIcon(":../icons/32x32/crt-plus.png")));
 #if defined(Q_OS_LINUX)
-    QGuiApplication::setDesktopFileName(QStringLiteral("cool-retro-term"));
+    QGuiApplication::setDesktopFileName(QStringLiteral("crt-plus"));
 #endif
 #else
-    app.setWindowIcon(QIcon(":../icons/32x32/cool-retro-term.png"));
+    app.setWindowIcon(QIcon(":../icons/32x32/crt-plus.png"));
 #endif
 
     // Manage command line arguments from the cpp side
@@ -156,7 +180,26 @@ int main(int argc, char *argv[])
         dockMenu->addAction(QObject::tr("New Window"), [rootObject]() {
             QMetaObject::invokeMethod(rootObject, "createWindow", Q_ARG(QVariant, QString()));
         });
+
+        QMenu *profilesMenu = dockMenu->addMenu(QObject::tr("New Window with Profile"));
+        QVariant returnValue;
+        QMetaObject::invokeMethod(rootObject, "getProfileList",
+                                  Q_RETURN_ARG(QVariant, returnValue));
+        QVariantList profiles = returnValue.toList();
+        for (const QVariant &item : profiles) {
+            QVariantMap profile = item.toMap();
+            QString name = profile["name"].toString();
+            QString profileString = profile["profileString"].toString();
+            profilesMenu->addAction(name, [rootObject, profileString]() {
+                QMetaObject::invokeMethod(rootObject, "createWindow",
+                                          Q_ARG(QVariant, profileString));
+            });
+        }
+
         dockMenu->setAsDockMenu();
+
+        // Handle folder drag-and-drop onto the dock icon
+        app.installEventFilter(new FileOpenHandler(rootObject, &app));
     }
 #endif
 

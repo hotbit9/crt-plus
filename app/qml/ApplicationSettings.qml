@@ -138,7 +138,7 @@ QtObject {
     }
 
     // DEFAULT PROFILE ////////////////////////////////////////////////////////
-    property string defaultProfileName: ""
+    property string defaultProfileName: "CRT Plus"
     property int currentProfileIndex: -1
     property var builtinProfileDefaults: ({})
 
@@ -446,7 +446,42 @@ QtObject {
     // PROFILES ///////////////////////////////////////////////////////////////
     property ListModel profilesList: ListModel {
         ListElement {
-            text: "Default Amber"
+            text: "CRT Plus"
+            obj_string: '{
+                "ambientLight": 0,
+                "backgroundColor": "#000000",
+                "bloom": 0.5,
+                "brightness": 0.5,
+                "burnIn": 0.3,
+                "chromaColor": 0,
+                "contrast": 0.8,
+                "flickering": 0,
+                "fontColor": "#0ccc68",
+                "fontName": "DEPARTURE_MONO_SCALED",
+                "fontSource": 0,
+                "fontWidth": 1,
+                "lineSpacing": 0.1,
+                "glowingLine": 0,
+                "horizontalSync": 0.1,
+                "jitter": 0.2,
+                "rasterization": 0,
+                "rgbShift": 0,
+                "saturationColor": 0,
+                "screenCurvature": 0,
+                "screenRadius": 0,
+                "staticNoise": 0,
+                "windowOpacity": 1,
+                "margin": 0.3,
+                "blinkingCursor": true,
+                "frameSize": 0,
+                "frameColor": "#d4d4d4",
+                "frameShininess": 0,
+                "highImpedance": true
+            }'
+            builtin: true
+        }
+        ListElement {
+            text: "Amber"
             obj_string: '{
                 "ambientLight": 0.3,
                 "backgroundColor": "#000000",

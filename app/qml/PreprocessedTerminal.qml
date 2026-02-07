@@ -29,6 +29,7 @@ import "utils.js" as Utils
 Item{
     id: terminalContainer
     property QtObject profileSettings
+    property string initialWorkDir: ""
     signal sessionFinished()
     signal activated()
     signal bellRequested()
@@ -211,8 +212,9 @@ Item{
                 ksession.setArgs(["-i", "-l"]);
             }
 
-            if (workdir)
-                ksession.initialWorkingDirectory = workdir;
+            var wd = terminalContainer.initialWorkDir !== "" ? terminalContainer.initialWorkDir : workdir
+            if (wd)
+                ksession.initialWorkingDirectory = wd;
 
             ksession.startShellProgram();
             forceActiveFocus();

@@ -22,9 +22,12 @@ macx {
     LIBS += -framework AppKit
     # Start as LSUIElement (no dock icon). Primary instance promotes itself to Regular.
     QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Add :LSUIElement bool true\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" 2>/dev/null || /usr/libexec/PlistBuddy -c \"Set :LSUIElement true\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" ;
+    # Accept folder drops on dock icon (opens new window in that directory)
+    PLIST = $$DESTDIR/crt-plus.app/Contents/Info.plist
+    QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Delete :CFBundleDocumentTypes\" \"$$PLIST\" 2>/dev/null ; /usr/libexec/PlistBuddy -c \"Add :CFBundleDocumentTypes array\" \"$$PLIST\" && /usr/libexec/PlistBuddy -c \"Add :CFBundleDocumentTypes:0 dict\" \"$$PLIST\" && /usr/libexec/PlistBuddy -c \"Add :CFBundleDocumentTypes:0:CFBundleTypeRole string Viewer\" \"$$PLIST\" && /usr/libexec/PlistBuddy -c \"Add :CFBundleDocumentTypes:0:LSItemContentTypes array\" \"$$PLIST\" && /usr/libexec/PlistBuddy -c \"Add :CFBundleDocumentTypes:0:LSItemContentTypes:0 string public.folder\" \"$$PLIST\" ;
 }
 
-macx:ICON = icons/crt.icns
+macx:ICON = icons/crt-plus.icns
 
 RESOURCES += qml/resources.qrc
 
@@ -101,13 +104,13 @@ INSTALLS += target
 
 # Install icons
 unix {
-    icon32.files = icons/32x32/cool-retro-term.png
+    icon32.files = icons/32x32/crt-plus.png
     icon32.path = /usr/share/icons/hicolor/32x32/apps
-    icon64.files = icons/64x64/cool-retro-term.png
+    icon64.files = icons/64x64/crt-plus.png
     icon64.path = /usr/share/icons/hicolor/64x64/apps
-    icon128.files = icons/128x128/cool-retro-term.png
+    icon128.files = icons/128x128/crt-plus.png
     icon128.path = /usr/share/icons/hicolor/128x128/apps
-    icon256.files = icons/256x256/cool-retro-term.png
+    icon256.files = icons/256x256/crt-plus.png
     icon256.path = /usr/share/icons/hicolor/256x256/apps
 
     INSTALLS += icon32 icon64 icon128 icon256

@@ -66,12 +66,23 @@ QtObject {
             badgeHelper.updateBadge(total)
     }
 
-    function createWindow(profileString) {
-        var win = windowComponent.createObject(appRoot)
-
-        if (profileString && profileString !== "") {
-            win.defaultProfileString = profileString
+    function getProfileList() {
+        var result = []
+        for (var i = 0; i < appSettings.profilesList.count; i++) {
+            var p = appSettings.profilesList.get(i)
+            if (p.obj_string !== "")
+                result.push({"name": p.text, "profileString": p.obj_string})
         }
+        return result
+    }
+
+    function createWindow(profileString, workDir) {
+        var props = {}
+        if (profileString && profileString !== "")
+            props.defaultProfileString = profileString
+        if (workDir && workDir !== "")
+            props.initialWorkDir = workDir
+        var win = windowComponent.createObject(appRoot, props)
 
         // Cascade position from the last window
         if (windows.length > 0) {
@@ -101,6 +112,11 @@ QtObject {
 
         if (windows.length === 0) {
             appSettings.close()
+        } else {
+            // Activate a surviving window so macOS picks up its menu bar
+            var survivor = windows[Math.min(idx, windows.length - 1)]
+            survivor.raise()
+            survivor.requestActivate()
         }
     }
 }

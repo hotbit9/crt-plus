@@ -56,6 +56,7 @@ Item {
     property bool _initialized: false
     property bool _isLoadingTabProfile: false
     property string defaultProfileString: ""
+    property string _initialWorkDir: ""
 
     property string _homeDir: typeof homeDir !== "undefined" ? homeDir : ""
 
@@ -148,9 +149,11 @@ Item {
         } else {
             profile = terminalWindow.profileSettings.composeProfileString()
         }
+        var wd = _initialWorkDir
+        _initialWorkDir = ""
         tabsModel.append({ title: "", customTitle: "", currentDir: "",
                            foregroundProcess: "", foregroundProcessLabel: "",
-                           badgeCount: 0,
+                           badgeCount: 0, initialWorkDir: wd,
                            profileString: profile,
                            profileIndex: terminalWindow.profileSettings.currentProfileIndex })
         tabBar.currentIndex = tabsModel.count - 1
@@ -303,6 +306,7 @@ Item {
 
     Component.onCompleted: {
         terminalWindow.profileSettings.currentProfileIndex = appSettings.currentProfileIndex
+        _initialWorkDir = terminalWindow.initialWorkDir
         addTab()
         _previousIndex = 0
         _initialized = true
@@ -425,6 +429,7 @@ Item {
                 id: tabRepeater
                 model: tabsModel
                 SplitPane {
+                    initialWorkDir: model.initialWorkDir || ""
                     property bool shouldHaveFocus: terminalWindow.active && StackLayout.isCurrentItem
                     onShouldHaveFocusChanged: {
                         if (shouldHaveFocus) {

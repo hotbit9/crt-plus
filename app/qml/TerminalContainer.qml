@@ -23,6 +23,7 @@ import Qt5Compat.GraphicalEffects
 import "utils.js" as Utils
 
 ShaderTerminal {
+    property string initialWorkDir: ""
     property alias title: terminal.title
     property alias currentDir: terminal.currentDir
     property alias foregroundProcessName: terminal.foregroundProcessName
@@ -53,6 +54,7 @@ ShaderTerminal {
     PreprocessedTerminal {
         id: terminal
         profileSettings: mainShader.profileSettings
+        initialWorkDir: mainShader.initialWorkDir
         anchors.fill: parent
         onSessionFinished: mainShader.sessionFinished()
         onForegroundProcessChanged: mainShader.foregroundProcessChanged()

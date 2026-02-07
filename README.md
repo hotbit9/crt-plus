@@ -52,12 +52,14 @@ Get notified when background tabs, panes, or windows need attention:
 - Window title shows a **●** dot when any tab/pane has a badge
 - Badges clear automatically when you focus the relevant pane or tab
 
-### Drag & Drop Path Support
-Drag a file or folder into the terminal window and its path is inserted at the cursor — ready for `cd`, `cat`, or any command.
+### Drag & Drop Support
+- **Into terminal window**: Drag a file or folder and its path is inserted at the cursor — ready for `cd`, `cat`, or any command
+- **Onto dock icon** (macOS): Drag a folder onto the dock icon to open a new terminal window in that directory
 
 ### macOS Improvements
 - Multi-window support with a single dock icon
-- New Window from dock menu (right-click)
+- **New Window** and **New Window with Profile** from dock menu (right-click) and File menu
+- Cmd+, opens Settings
 
 ## Description
 CRT Plus is a terminal emulator which mimics the look and feel of the old cathode tube screens.
