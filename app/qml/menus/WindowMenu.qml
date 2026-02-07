@@ -42,6 +42,16 @@ MenuBar {
         MenuItem { action: quitAction }
     }
     Menu {
+        title: qsTr("Pane")
+        MenuItem { action: splitHorizontalAction }
+        MenuItem { action: splitVerticalAction }
+        MenuSeparator {}
+        MenuItem { action: nextPaneAction }
+        MenuItem { action: previousPaneAction }
+        MenuSeparator {}
+        MenuItem { action: closePaneAction }
+    }
+    Menu {
         title: qsTr("Edit")
         MenuItem { action: copyAction }
         MenuItem { action: pasteAction }
@@ -65,21 +75,21 @@ MenuBar {
         title: qsTr("Window")
         MenuItem { action: minimizeAction }
         MenuSeparator { }
-        Instantiator {
-            model: appRoot.windows
-            delegate: MenuItem {
-                required property var modelData
+        Repeater {
+            model: appRoot.windows.length
+            MenuItem {
                 required property int index
-                text: modelData.title || "CRT Plus"
+                text: appRoot.windows[index] ? (appRoot.windows[index].title || "CRT Plus") : "CRT Plus"
                 checkable: true
-                checked: modelData === terminalWindow
+                checked: appRoot.windows[index] === terminalWindow
                 onTriggered: {
-                    modelData.raise()
-                    modelData.requestActivate()
+                    var win = appRoot.windows[index]
+                    if (win) {
+                        win.raise()
+                        win.requestActivate()
+                    }
                 }
             }
-            onObjectAdded: (index, object) => windowMenu.insertItem(index + 2, object)
-            onObjectRemoved: (index, object) => windowMenu.removeItem(object)
         }
     }
     Menu {

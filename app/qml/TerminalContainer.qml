@@ -30,6 +30,7 @@ ShaderTerminal {
     property alias terminalSize: terminal.terminalSize
     signal sessionFinished()
     signal foregroundProcessChanged()
+    signal activated()
 
     profileSettings: terminalWindow.profileSettings
 
@@ -42,8 +43,8 @@ ShaderTerminal {
     burnInEffect: terminal.burnInEffect
     virtualResolution: terminal.virtualResolution
     screenResolution: Qt.size(
-        terminalWindow.width * Screen.devicePixelRatio * appSettings.windowScaling,
-        terminalWindow.height * Screen.devicePixelRatio * appSettings.windowScaling
+        mainShader.width * Screen.devicePixelRatio * appSettings.windowScaling,
+        mainShader.height * Screen.devicePixelRatio * appSettings.windowScaling
     )
     bloomSource: bloomSourceLoader.item
 
@@ -53,6 +54,7 @@ ShaderTerminal {
         anchors.fill: parent
         onSessionFinished: mainShader.sessionFinished()
         onForegroundProcessChanged: mainShader.foregroundProcessChanged()
+        onActivated: mainShader.activated()
     }
 
     function activate() {

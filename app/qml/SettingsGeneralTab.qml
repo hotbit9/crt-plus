@@ -37,6 +37,12 @@ ColumnLayout {
                 model: appSettings.profilesList
                 currentIndex: appSettings.currentProfileIndex
                 clip: true
+                Connections {
+                    target: appSettings
+                    function onProfileChanged() {
+                        profilesView.currentIndex = appSettings.currentProfileIndex
+                    }
+                }
                 section.property: "builtin"
                 section.delegate: Rectangle {
                     width: profilesView.width

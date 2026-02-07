@@ -169,6 +169,57 @@ ApplicationWindow {
         shortcut: appSettings.isMacOS ? "Meta+R" : "Ctrl+Shift+R"
         onTriggered: terminalTabs.openRenameDialog(terminalTabs.currentIndex)
     }
+    Action {
+        id: splitHorizontalAction
+        text: qsTr("Split Right")
+        shortcut: appSettings.isMacOS ? "Meta+D" : "Ctrl+Shift+D"
+        onTriggered: {
+            var root = terminalTabs.currentRootSplitPane()
+            if (root) {
+                var leaf = root.focusedLeaf()
+                if (leaf) leaf.split(Qt.Horizontal)
+            }
+        }
+    }
+    Action {
+        id: splitVerticalAction
+        text: qsTr("Split Down")
+        shortcut: appSettings.isMacOS ? "Meta+Shift+D" : "Ctrl+Shift+E"
+        onTriggered: {
+            var root = terminalTabs.currentRootSplitPane()
+            if (root) {
+                var leaf = root.focusedLeaf()
+                if (leaf) leaf.split(Qt.Vertical)
+            }
+        }
+    }
+    Action {
+        id: nextPaneAction
+        text: qsTr("Next Pane")
+        shortcut: appSettings.isMacOS ? "Meta+]" : "Ctrl+Shift+]"
+        onTriggered: {
+            var root = terminalTabs.currentRootSplitPane()
+            if (root) root.focusNext()
+        }
+    }
+    Action {
+        id: previousPaneAction
+        text: qsTr("Previous Pane")
+        shortcut: appSettings.isMacOS ? "Meta+[" : "Ctrl+Shift+["
+        onTriggered: {
+            var root = terminalTabs.currentRootSplitPane()
+            if (root) root.focusPrevious()
+        }
+    }
+    Action {
+        id: closePaneAction
+        text: qsTr("Close Pane")
+        shortcut: appSettings.isMacOS ? "Meta+Shift+W" : "Ctrl+Shift+W"
+        onTriggered: {
+            var root = terminalTabs.currentRootSplitPane()
+            if (root) root.closeFocusedPane()
+        }
+    }
     TerminalTabs {
         id: terminalTabs
         width: parent.width

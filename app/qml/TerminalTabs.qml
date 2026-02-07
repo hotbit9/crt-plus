@@ -39,6 +39,10 @@ Item {
     readonly property int count: tabsModel.count
     property size terminalSize: Qt.size(0, 0)
 
+    function currentRootSplitPane() {
+        return tabRepeater.itemAt(tabBar.currentIndex)
+    }
+
     // Per-tab profile support
     property int _previousIndex: -1
     property bool _initialized: false
@@ -162,10 +166,20 @@ Item {
         }
     }
 
-    // Load a profile into the current tab (used by context/window menu)
+    // Load a profile into the current tab's focused pane (used by context/window menu)
     function loadProfileForCurrentTab(profileString) {
         _isLoadingTabProfile = true
         terminalWindow.profileSettings.loadFromString(profileString)
+        // Apply to the focused pane
+        var root = currentRootSplitPane()
+        if (root) {
+            var leaf = root.focusedLeaf()
+            if (leaf && leaf.paneProfileSettings) {
+                leaf.paneProfileSettings.loadFromString(profileString)
+                leaf.paneProfileSettings.currentProfileIndex =
+                    terminalWindow.profileSettings.currentProfileIndex
+            }
+        }
         if (appRoot.activeTerminalWindow === terminalWindow) {
             terminalWindow.profileSettings.syncToAppSettings()
         }
@@ -188,26 +202,49 @@ Item {
     }
 
     function loadTabProfile(index) {
-        if (index >= 0 && index < tabsModel.count) {
-            var entry = tabsModel.get(index)
-            if (entry.profileString && entry.profileString !== "") {
-                _isLoadingTabProfile = true
-                terminalWindow.profileSettings.loadFromString(entry.profileString)
-                terminalWindow.profileSettings.currentProfileIndex = entry.profileIndex
-                if (appRoot.activeTerminalWindow === terminalWindow) {
-                    terminalWindow.profileSettings.syncToAppSettings()
-                }
-                _isLoadingTabProfile = false
+        if (index < 0 || index >= tabsModel.count) return
+        var entry = tabsModel.get(index)
+        if (!entry.profileString || entry.profileString === "") return
+
+        _isLoadingTabProfile = true
+        terminalWindow.profileSettings.loadFromString(entry.profileString)
+        terminalWindow.profileSettings.currentProfileIndex = entry.profileIndex
+
+        // Push to the focused pane (ensures initial load sets the saved profile)
+        var root = tabRepeater.itemAt(index)
+        if (root) {
+            var leaf = root.focusedLeaf()
+            if (leaf && leaf.paneProfileSettings) {
+                leaf.paneProfileSettings.loadFromString(entry.profileString)
+                leaf.paneProfileSettings.currentProfileIndex = entry.profileIndex
             }
         }
+
+        if (appRoot.activeTerminalWindow === terminalWindow)
+            terminalWindow.profileSettings.syncToAppSettings()
+        _isLoadingTabProfile = false
     }
 
     Connections {
         target: terminalWindow.profileSettings
         function onProfileChanged() {
-            if (tabsRoot._initialized && !tabsRoot._isLoadingTabProfile
-                && tabBar.currentIndex >= 0 && tabBar.currentIndex < tabsModel.count) {
-                tabsRoot.saveCurrentTabProfile(tabBar.currentIndex)
+            if (!tabsRoot._initialized) return
+            var idx = tabBar.currentIndex
+            if (idx < 0 || idx >= tabsModel.count) return
+
+            if (!tabsRoot._isLoadingTabProfile) {
+                tabsRoot.saveCurrentTabProfile(idx)
+                // Propagate settings/menu changes to the focused pane
+                var root = currentRootSplitPane()
+                if (root && !root._syncingPaneProfile) {
+                    var leaf = root.focusedLeaf()
+                    if (leaf && leaf.paneProfileSettings) {
+                        leaf.paneProfileSettings.loadFromString(
+                            terminalWindow.profileSettings.composeProfileString())
+                        leaf.paneProfileSettings.currentProfileIndex =
+                            terminalWindow.profileSettings.currentProfileIndex
+                    }
+                }
             }
         }
     }
@@ -256,10 +293,10 @@ Item {
     }
 
     Component.onCompleted: {
+        terminalWindow.profileSettings.currentProfileIndex = appSettings.currentProfileIndex
         addTab()
         _previousIndex = 0
         _initialized = true
-        terminalWindow.profileSettings.currentProfileIndex = appSettings.currentProfileIndex
         loadTabProfile(0)
     }
 
@@ -376,31 +413,32 @@ Item {
             currentIndex: tabBar.currentIndex
 
             Repeater {
+                id: tabRepeater
                 model: tabsModel
-                TerminalContainer {
+                SplitPane {
                     property bool shouldHaveFocus: terminalWindow.active && StackLayout.isCurrentItem
                     onShouldHaveFocusChanged: {
                         if (shouldHaveFocus) {
-                            activate()
+                            activateFocused()
                         }
                     }
-                    onTitleChanged: tabsModel.setProperty(index, "title", normalizeTitle(title))
-                    onCurrentDirChanged: tabsModel.setProperty(index, "currentDir", currentDir || "")
-                    onForegroundProcessChanged: {
-                        tabsModel.setProperty(index, "foregroundProcess", foregroundProcessName)
-                        tabsModel.setProperty(index, "foregroundProcessLabel", foregroundProcessLabel)
+                    onFocusedTitleChanged: function(title) {
+                        tabsModel.setProperty(index, "title", normalizeTitle(title))
+                    }
+                    onFocusedCurrentDirChanged: function(dir) {
+                        tabsModel.setProperty(index, "currentDir", dir || "")
+                    }
+                    onFocusedForegroundProcessChanged: function(name, label) {
+                        tabsModel.setProperty(index, "foregroundProcess", name)
+                        tabsModel.setProperty(index, "foregroundProcessLabel", label)
+                    }
+                    onFocusedTerminalSizeChanged: function(terminalSize) {
+                        if (index == 0)
+                            tabsRoot.terminalSize = terminalSize
                     }
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    onSessionFinished: tabsRoot.closeTab(index)
-                    onTerminalSizeChanged: updateTerminalSize()
-
-                    function updateTerminalSize() {
-                        // Every tab will have the same size so we can simply take the first one.
-                        if (index == 0) {
-                            tabsRoot.terminalSize = terminalSize
-                        }
-                    }
+                    onTabCloseRequested: tabsRoot.closeTab(index)
                 }
             }
         }

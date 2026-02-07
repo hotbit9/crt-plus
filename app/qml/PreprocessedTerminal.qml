@@ -30,6 +30,7 @@ Item{
     id: terminalContainer
     property QtObject profileSettings
     signal sessionFinished()
+    signal activated()
 
     property size virtualResolution: Qt.size(kterminal.totalWidth, kterminal.totalHeight)
     property alias mainTerminal: kterminal
@@ -72,16 +73,16 @@ Item{
     property size terminalSize: kterminal.terminalSize
     property size fontMetrics: kterminal.fontMetrics
 
-    // Manage copy and paste
+    // Manage copy and paste (gated on activeFocus so only focused pane responds)
     Connections {
-        target: copyAction
+        target: kterminal.activeFocus ? copyAction : null
 
         onTriggered: {
             kterminal.copyClipboard()
         }
     }
     Connections {
-        target: pasteAction
+        target: kterminal.activeFocus ? pasteAction : null
 
         onTriggered: {
             kterminal.pasteClipboard()
@@ -259,6 +260,7 @@ Item{
         }
         onPressed: function(mouse) {
             kterminal.forceActiveFocus()
+            terminalContainer.activated()
             if ((!kterminal.terminalUsesMouse || mouse.modifiers & Qt.ShiftModifier) && mouse.button == Qt.RightButton) {
                 contextmenu.popup();
             } else {
