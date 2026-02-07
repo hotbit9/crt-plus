@@ -44,6 +44,14 @@ Split any terminal into multiple panes for side-by-side workflows:
 - Each pane maintains its own independent profile, directory, and process tracking
 - Panes can be split recursively — split any pane further in either direction
 
+### Dock Badge Notifications
+Get notified when background tabs, panes, or windows need attention:
+- **Terminal bell** (`\a`) increments the dock icon badge count
+- **Background activity** sets a badge when new output appears in unfocused panes
+- Tab bar shows a **●** dot on tabs with pending notifications
+- Window title shows a **●** dot when any tab/pane has a badge
+- Badges clear automatically when you focus the relevant pane or tab
+
 ### Drag & Drop Path Support
 Drag a file or folder into the terminal window and its path is inserted at the cursor — ready for `cd`, `cat`, or any command.
 

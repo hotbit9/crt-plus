@@ -38,6 +38,14 @@ Item {
     readonly property alias tabsModel: tabsModel
     readonly property int count: tabsModel.count
     property size terminalSize: Qt.size(0, 0)
+    property int totalBadgeCount: 0
+
+    function _updateTotalBadge() {
+        var total = 0
+        for (var i = 0; i < tabsModel.count; i++)
+            total += tabsModel.get(i).badgeCount
+        totalBadgeCount = total
+    }
 
     function currentRootSplitPane() {
         return tabRepeater.itemAt(tabBar.currentIndex)
@@ -142,6 +150,7 @@ Item {
         }
         tabsModel.append({ title: "", customTitle: "", currentDir: "",
                            foregroundProcess: "", foregroundProcessLabel: "",
+                           badgeCount: 0,
                            profileString: profile,
                            profileIndex: terminalWindow.profileSettings.currentProfileIndex })
         tabBar.currentIndex = tabsModel.count - 1
@@ -350,7 +359,7 @@ Item {
                                 spacing: innerPadding
 
                                 Label {
-                                    text: tabsRoot.displayTitle(model.customTitle, model.title, model.currentDir, model.foregroundProcess, model.foregroundProcessLabel)
+                                    text: (model.badgeCount > 0 ? "\u25CF " : "") + tabsRoot.displayTitle(model.customTitle, model.title, model.currentDir, model.foregroundProcess, model.foregroundProcessLabel)
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
                                     Layout.alignment: Qt.AlignVCenter
@@ -439,6 +448,11 @@ Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     onTabCloseRequested: tabsRoot.closeTab(index)
+                    onBadgeCountChanged: {
+                        var count = totalBadgeCount()
+                        tabsModel.setProperty(index, "badgeCount", count)
+                        tabsRoot._updateTotalBadge()
+                    }
                 }
             }
         }

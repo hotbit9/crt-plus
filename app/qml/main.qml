@@ -58,6 +58,14 @@ QtObject {
         TerminalWindow { }
     }
 
+    function _updateDockBadge() {
+        var total = 0
+        for (var i = 0; i < windows.length; i++)
+            total += windows[i].badgeCount
+        if (typeof badgeHelper !== "undefined")
+            badgeHelper.updateBadge(total)
+    }
+
     function createWindow(profileString) {
         var win = windowComponent.createObject(appRoot)
 
@@ -72,20 +80,24 @@ QtObject {
             win.y = lastWin.y + 30
         }
 
+        win.badgeCountChanged.connect(_updateDockBadge)
         windows = windows.concat([win])
         win.visible = true
     }
 
     function closeWindow(window) {
-        // Save current tab profile before removing
         var idx = windows.indexOf(window)
         if (idx === -1) return
+
+        window.badgeCountChanged.disconnect(_updateDockBadge)
 
         var newList = windows.slice()
         newList.splice(idx, 1)
         windows = newList
 
         window.destroy()
+
+        _updateDockBadge()
 
         if (windows.length === 0) {
             appSettings.close()

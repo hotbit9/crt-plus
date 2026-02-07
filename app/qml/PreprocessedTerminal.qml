@@ -31,6 +31,8 @@ Item{
     property QtObject profileSettings
     signal sessionFinished()
     signal activated()
+    signal bellRequested()
+    signal activityDetected()
 
     property size virtualResolution: Qt.size(kterminal.totalWidth, kterminal.totalHeight)
     property alias mainTerminal: kterminal
@@ -152,6 +154,8 @@ Item{
             onFinished: {
                 terminalContainer.sessionFinished()
             }
+            onBellRequest: terminalContainer.bellRequested()
+            onActivity: terminalContainer.activityDetected()
         }
 
         QMLTermScrollbar {

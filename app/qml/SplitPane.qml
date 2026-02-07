@@ -59,11 +59,14 @@ Item {
         return ps
     }
 
+    property int paneBadgeCount: 0
+
     signal tabCloseRequested()
     signal focusedTitleChanged(string title)
     signal focusedCurrentDirChanged(string dir)
     signal focusedForegroundProcessChanged(string name, string label)
     signal focusedTerminalSizeChanged(size terminalSize)
+    signal badgeCountChanged()
 
     // Return the currently focused leaf
     function focusedLeaf() {
@@ -100,6 +103,10 @@ Item {
             if (showBorder !== false && leaves.length > 1)
                 leaf.flashBorder()
             _syncPaneToWindow(leaf)
+            if (leaf.paneBadgeCount > 0) {
+                leaf.paneBadgeCount = 0
+                badgeCountChanged()
+            }
         }
     }
 
@@ -312,6 +319,14 @@ Item {
         return allLeaves().length > 1
     }
 
+    function totalBadgeCount() {
+        var leaves = allLeaves()
+        var total = 0
+        for (var i = 0; i < leaves.length; i++)
+            total += leaves[i].paneBadgeCount
+        return total
+    }
+
     function _connectTerminal(t) {
         t.onTitleChanged.connect(function() {
             if (splitPaneRoot.terminal !== t) return
@@ -349,6 +364,24 @@ Item {
         t.activated.connect(function() {
             if (splitPaneRoot.terminal !== t) return
             _rootPane().focusPane(splitPaneRoot)
+        })
+        t.bellRequested.connect(function() {
+            if (splitPaneRoot.terminal !== t) return
+            var root = _rootPane()
+            if (!root.shouldHaveFocus || !splitPaneRoot.isFocused) {
+                splitPaneRoot.paneBadgeCount++
+                root.badgeCountChanged()
+            }
+        })
+        t.activityDetected.connect(function() {
+            if (splitPaneRoot.terminal !== t) return
+            var root = _rootPane()
+            if (!root.shouldHaveFocus || !splitPaneRoot.isFocused) {
+                if (splitPaneRoot.paneBadgeCount === 0) {
+                    splitPaneRoot.paneBadgeCount = 1
+                    root.badgeCountChanged()
+                }
+            }
         })
     }
 
@@ -389,6 +422,24 @@ Item {
         t.activated.connect(function() {
             if (!childPane._alive) return
             childPane._rootPane().focusPane(childPane)
+        })
+        t.bellRequested.connect(function() {
+            if (!childPane._alive) return
+            var root = childPane._rootPane()
+            if (!root.shouldHaveFocus || !childPane.isFocused) {
+                childPane.paneBadgeCount++
+                root.badgeCountChanged()
+            }
+        })
+        t.activityDetected.connect(function() {
+            if (!childPane._alive) return
+            var root = childPane._rootPane()
+            if (!root.shouldHaveFocus || !childPane.isFocused) {
+                if (childPane.paneBadgeCount === 0) {
+                    childPane.paneBadgeCount = 1
+                    root.badgeCountChanged()
+                }
+            }
         })
     }
 

@@ -31,6 +31,8 @@ ShaderTerminal {
     signal sessionFinished()
     signal foregroundProcessChanged()
     signal activated()
+    signal bellRequested()
+    signal activityDetected()
 
     profileSettings: terminalWindow.profileSettings
 
@@ -55,6 +57,8 @@ ShaderTerminal {
         onSessionFinished: mainShader.sessionFinished()
         onForegroundProcessChanged: mainShader.foregroundProcessChanged()
         onActivated: mainShader.activated()
+        onBellRequested: mainShader.bellRequested()
+        onActivityDetected: mainShader.activityDetected()
     }
 
     function activate() {

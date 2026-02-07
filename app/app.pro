@@ -17,7 +17,7 @@ SOURCES += main.cpp \
     fontlistmodel.cpp
 
 macx {
-    HEADERS += macutils.h
+    HEADERS += macutils.h badgehelper.h
     OBJECTIVE_SOURCES += macutils.mm
     LIBS += -framework AppKit
     # Start as LSUIElement (no dock icon). Primary instance promotes itself to Regular.

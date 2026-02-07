@@ -24,6 +24,7 @@
 #include <QStyleFactory>
 #include <QMenu>
 #include <macutils.h>
+#include "badgehelper.h"
 #endif
 
 QString getNamedArgument(QStringList args, QString name, QString defaultName)
@@ -125,6 +126,11 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("workdir", getNamedArgument(args, "--workdir", "$HOME"));
     engine.rootContext()->setContextProperty("homeDir", QDir::homePath());
     engine.rootContext()->setContextProperty("fileIO", &fileIO);
+
+#if defined(Q_OS_MAC)
+    BadgeHelper badgeHelper;
+    engine.rootContext()->setContextProperty("badgeHelper", &badgeHelper);
+#endif
 
     // Manage import paths for Linux and OSX.
     QStringList importPathList = engine.importPathList();

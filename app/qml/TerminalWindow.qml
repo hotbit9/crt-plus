@@ -36,6 +36,7 @@ ApplicationWindow {
 
     property string defaultProfileString: ""
     property alias profileSettings: profileSettings
+    readonly property int badgeCount: terminalTabs.totalBadgeCount
 
     ProfileSettings {
         id: profileSettings
@@ -50,13 +51,22 @@ ApplicationWindow {
 
     color: "#00000000"
 
-    title: terminalTabs.currentTitle
+    title: (badgeCount > 0 ? "\u25CF " : "") + terminalTabs.currentTitle
 
     onActiveChanged: {
         if (!terminalTabs._initialized) return
         if (active) {
             appRoot.activeTerminalWindow = terminalWindow
             terminalTabs.loadTabProfile(terminalTabs.currentIndex)
+            // Clear badge on the focused pane when window becomes active
+            var root = terminalTabs.currentRootSplitPane()
+            if (root) {
+                var leaf = root.focusedLeaf()
+                if (leaf && leaf.paneBadgeCount > 0) {
+                    leaf.paneBadgeCount = 0
+                    root.badgeCountChanged()
+                }
+            }
         } else {
             terminalTabs.saveCurrentTabProfile(terminalTabs.currentIndex)
         }
