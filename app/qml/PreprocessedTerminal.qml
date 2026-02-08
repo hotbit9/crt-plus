@@ -245,14 +245,21 @@ Item{
         sourceComponent: (appSettings.isMacOS || (appSettings.showMenubar && !terminalWindow.fullscreen) ? shortContextMenu : fullContextMenu)
     }
     property alias contextmenu: menuLoader.item
+    Connections {
+        target: contextmenu
+        function onClosed() { kterminal.clearHoverHotSpot() }
+    }
 
     MouseArea {
+        id: terminalMouseArea
         property real margin: profileSettings.margin
         property real frameSize: profileSettings.frameSize * terminalWindow.normalizedWindowScale
+        property bool hoverHotSpotActive: false
 
         acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+        hoverEnabled: true
         anchors.fill: parent
-        cursorShape: kterminal.terminalUsesMouse ? Qt.ArrowCursor : Qt.IBeamCursor
+        cursorShape: hoverHotSpotActive ? Qt.PointingHandCursor : (kterminal.terminalUsesMouse ? Qt.ArrowCursor : Qt.IBeamCursor)
         onWheel: function(wheel) {
             if (wheel.modifiers & Qt.ControlModifier) {
                wheel.angleDelta.y > 0 ? zoomIn.trigger() : zoomOut.trigger();
@@ -269,6 +276,30 @@ Item{
             kterminal.forceActiveFocus()
             terminalContainer.activated()
             if ((!kterminal.terminalUsesMouse || mouse.modifiers & Qt.ShiftModifier) && mouse.button == Qt.RightButton) {
+                // Check for openable target (file path or URL) under cursor
+                var rcoord = correctDistortion(mouse.x, mouse.y);
+                var openTarget = ""
+                var rpath = kterminal.resolveFilePathAt(rcoord.x, rcoord.y)
+                if (rpath !== "") {
+                    openTarget = rpath
+                } else {
+                    var ht = kterminal.hotSpotTypeAt(rcoord.x, rcoord.y)
+                    if (ht === 1 /* Link */ || ht === 3 /* FilePath */) {
+                        if (ht === 3) {
+                            var info = kterminal.hotSpotFilePathAt(rcoord.x, rcoord.y)
+                            if (info !== "") openTarget = info.split(":")[0]
+                        } else {
+                            openTarget = "link" // URL detected
+                        }
+                    }
+                }
+                contextmenu.openFilePath = openTarget
+                contextmenu.openFileCoordX = rcoord.x
+                contextmenu.openFileCoordY = rcoord.y
+                contextmenu.hasSelection = kterminal.hasSelection()
+                // Highlight the target while the context menu is open
+                if (openTarget !== "")
+                    kterminal.updateHoverHotSpot(rcoord.x, rcoord.y, true)
                 contextmenu.popup();
             } else {
                 var coord = correctDistortion(mouse.x, mouse.y);
@@ -277,13 +308,17 @@ Item{
                 if (mouse.button === Qt.LeftButton && (mouse.modifiers & modKey)) {
                     var hotType = kterminal.hotSpotTypeAt(coord.x, coord.y)
                     if (hotType > 0) {
-                        if (_isRemoteSession() && hotType === 4 /* FilePath */) {
+                        if (_isRemoteSession() && hotType === 3 /* FilePath */) {
                             _openRemoteFile(coord.x, coord.y)
                         } else {
                             kterminal.activateHotSpotAt(coord.x, coord.y, "click-action")
                         }
                         return
                     }
+                    // No regex hotspot — try filesystem-based smart resolve
+                    // (handles filenames with spaces, etc.)
+                    if (!_isRemoteSession() && kterminal.resolveAndOpenFileAt(coord.x, coord.y))
+                        return
                 }
                 kterminal.simulateMousePress(coord.x, coord.y, mouse.button, mouse.buttons, mouse.modifiers)
             }
@@ -294,7 +329,25 @@ Item{
         }
         onPositionChanged: function(mouse) {
             var coord = correctDistortion(mouse.x, mouse.y);
-            kterminal.simulateMouseMove(coord.x, coord.y, mouse.button, mouse.buttons, mouse.modifiers);
+            // Cmd+hover (macOS) / Ctrl+hover (Linux) highlights clickable hotspots
+            var modKey = appSettings.isMacOS ? Qt.MetaModifier : Qt.ControlModifier
+            var cmdHeld = (mouse.modifiers & modKey) !== 0
+            if (cmdHeld) {
+                var hotType = kterminal.updateHoverHotSpot(coord.x, coord.y, true)
+                terminalMouseArea.hoverHotSpotActive = hotType > 0
+            } else if (terminalMouseArea.hoverHotSpotActive) {
+                kterminal.clearHoverHotSpot()
+                terminalMouseArea.hoverHotSpotActive = false
+            }
+            // Only forward mouse move to terminal when buttons are pressed
+            if (mouse.buttons !== Qt.NoButton)
+                kterminal.simulateMouseMove(coord.x, coord.y, mouse.button, mouse.buttons, mouse.modifiers);
+        }
+        onExited: {
+            if (terminalMouseArea.hoverHotSpotActive) {
+                kterminal.clearHoverHotSpot()
+                terminalMouseArea.hoverHotSpotActive = false
+            }
         }
 
         function correctDistortion(x, y) {

@@ -22,10 +22,30 @@ import QtQuick.Controls 2.3
 
 Menu {
     id: contextmenu
+    property string openFilePath: ""
+    property int openFileCoordX: 0
+    property int openFileCoordY: 0
+    property bool hasSelection: false
     MenuItem {
-        action: copyAction
+        text: qsTr("Open")
+        visible: contextmenu.openFilePath !== ""
+        height: visible ? implicitHeight : 0
+        onTriggered: {
+            if (!kterminal.activateHotSpotAt(contextmenu.openFileCoordX, contextmenu.openFileCoordY, "click-action"))
+                kterminal.resolveAndOpenFileAt(contextmenu.openFileCoordX, contextmenu.openFileCoordY)
+        }
     }
     MenuItem {
-        action: pasteAction
+        text: qsTr("Copy")
+        enabled: contextmenu.hasSelection
+        onTriggered: kterminal.copyClipboard()
+    }
+    MenuSeparator {
+        visible: contextmenu.openFilePath !== ""
+        height: visible ? implicitHeight : 0
+    }
+    MenuItem {
+        text: qsTr("Paste")
+        onTriggered: kterminal.pasteClipboard()
     }
 }
