@@ -278,28 +278,40 @@ Item{
             if ((!kterminal.terminalUsesMouse || mouse.modifiers & Qt.ShiftModifier) && mouse.button == Qt.RightButton) {
                 // Check for openable target (file path or URL) under cursor
                 var rcoord = correctDistortion(mouse.x, mouse.y);
+                var isRemote = _isRemoteSession()
+                var hasSelection = kterminal.hasSelection()
                 var openTarget = ""
-                var rpath = kterminal.resolveFilePathAt(rcoord.x, rcoord.y)
-                if (rpath !== "") {
-                    openTarget = rpath
-                } else {
-                    var ht = kterminal.hotSpotTypeAt(rcoord.x, rcoord.y)
-                    if (ht === 1 /* Link */ || ht === 3 /* FilePath */) {
-                        if (ht === 3) {
-                            var info = kterminal.hotSpotFilePathAt(rcoord.x, rcoord.y)
-                            if (info !== "") openTarget = info.split(":")[0]
-                        } else {
-                            openTarget = "link" // URL detected
+                // Skip path/URL detection when there's a text selection —
+                // the user's selection takes priority for Copy
+                if (!hasSelection) {
+                    if (!isRemote) {
+                        var rpath = kterminal.resolveFilePathAt(rcoord.x, rcoord.y)
+                        if (rpath !== "") {
+                            // Use display text from terminal, not resolved absolute path
+                            var displayText = kterminal.extractPathTextAt(rcoord.x, rcoord.y)
+                            openTarget = displayText !== "" ? displayText : rpath
                         }
+                    }
+                    if (openTarget === "") {
+                        var ht = kterminal.hotSpotTypeAt(rcoord.x, rcoord.y)
+                        if (ht === 1 /* Link */ || ht === 3 /* FilePath */) {
+                            var text = kterminal.hotSpotTextAt(rcoord.x, rcoord.y)
+                            if (text !== "") openTarget = text
+                        }
+                    }
+                    if (openTarget === "" && isRemote) {
+                        var remotePath = kterminal.extractPathTextAt(rcoord.x, rcoord.y)
+                        if (remotePath !== "") openTarget = remotePath
                     }
                 }
                 contextmenu.openFilePath = openTarget
                 contextmenu.openFileCoordX = rcoord.x
                 contextmenu.openFileCoordY = rcoord.y
-                contextmenu.hasSelection = kterminal.hasSelection()
+                contextmenu.hasSelection = hasSelection
+                contextmenu.isRemoteSession = isRemote
                 // Highlight the target while the context menu is open
                 if (openTarget !== "")
-                    kterminal.updateHoverHotSpot(rcoord.x, rcoord.y, true)
+                    kterminal.updateHoverHotSpot(rcoord.x, rcoord.y, true, isRemote)
                 contextmenu.popup();
             } else {
                 var coord = correctDistortion(mouse.x, mouse.y);
@@ -315,10 +327,14 @@ Item{
                         }
                         return
                     }
-                    // No regex hotspot — try filesystem-based smart resolve
-                    // (handles filenames with spaces, etc.)
-                    if (!_isRemoteSession() && kterminal.resolveAndOpenFileAt(coord.x, coord.y))
-                        return
+                    // No regex hotspot — try smart resolve or remote path extraction
+                    if (_isRemoteSession()) {
+                        var pathText = kterminal.extractPathTextAt(coord.x, coord.y)
+                        if (pathText !== "") { _openRemotePathText(pathText); return }
+                    } else {
+                        if (kterminal.resolveAndOpenFileAt(coord.x, coord.y))
+                            return
+                    }
                 }
                 kterminal.simulateMousePress(coord.x, coord.y, mouse.button, mouse.buttons, mouse.modifiers)
             }
@@ -333,7 +349,7 @@ Item{
             var modKey = appSettings.isMacOS ? Qt.MetaModifier : Qt.ControlModifier
             var cmdHeld = (mouse.modifiers & modKey) !== 0
             if (cmdHeld) {
-                var hotType = kterminal.updateHoverHotSpot(coord.x, coord.y, true)
+                var hotType = kterminal.updateHoverHotSpot(coord.x, coord.y, true, _isRemoteSession())
                 terminalMouseArea.hoverHotSpotActive = hotType > 0
             } else if (terminalMouseArea.hoverHotSpotActive) {
                 kterminal.clearHoverHotSpot()
@@ -403,13 +419,52 @@ Item{
         return fg === "ssh" || fg === "mosh" || fg === "telnet" || fg === "rlogin"
     }
 
+    function _shellQuotePath(path) {
+        return "'" + path.replace(/'/g, "'\\''") + "'"
+    }
+
+    function _looksLikeDirectory(path) {
+        if (path.endsWith("/")) return true
+        var basename = path.split("/").pop()
+        var dotIdx = basename.lastIndexOf(".")
+        if (dotIdx >= 1 && dotIdx < basename.length - 1) {
+            var ext = basename.substring(dotIdx + 1)
+            if (ext.length >= 1 && ext.length <= 10) return false
+        }
+        return true
+    }
+
     function _openRemoteFile(x, y) {
         var info = kterminal.hotSpotFilePathAt(x, y)
         if (info === "") return
         var parts = info.split(":")
         var path = parts[0], line = parts[1] || "1"
-        var editor = appSettings.remoteEditorCommand || "vim"
-        ksession.sendText(editor + " +" + line + " " + path + "\n")
+        if (_looksLikeDirectory(path)) {
+            ksession.sendText("cd " + _shellQuotePath(path) + "\n")
+        } else {
+            var editor = appSettings.remoteEditorCommand || "vim"
+            ksession.sendText(editor + " +" + line + " " + _shellQuotePath(path) + "\n")
+        }
+    }
+
+    function _openRemotePathText(pathText) {
+        var suffixMatch = pathText.match(/^(.+?):(\d+)(?::(\d+))?$/)
+        var path, line
+        if (suffixMatch) {
+            path = suffixMatch[1]
+            line = suffixMatch[2]
+        } else {
+            path = pathText
+            line = "1"
+        }
+        // Strip trailing slash for directory check but keep in cd path
+        var cleanPath = path.replace(/\/+$/, "")
+        if (_looksLikeDirectory(cleanPath)) {
+            ksession.sendText("cd " + _shellQuotePath(path) + "\n")
+        } else {
+            var editor = appSettings.remoteEditorCommand || "vim"
+            ksession.sendText(editor + " +" + line + " " + _shellQuotePath(path) + "\n")
+        }
     }
 
     ShaderEffectSource{

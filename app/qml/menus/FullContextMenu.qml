@@ -26,19 +26,36 @@ Menu {
     property int openFileCoordX: 0
     property int openFileCoordY: 0
     property bool hasSelection: false
+    property bool isRemoteSession: false
     MenuItem {
         text: qsTr("Open")
         visible: contextmenu.openFilePath !== ""
         height: visible ? implicitHeight : 0
         onTriggered: {
-            if (!kterminal.activateHotSpotAt(contextmenu.openFileCoordX, contextmenu.openFileCoordY, "click-action"))
-                kterminal.resolveAndOpenFileAt(contextmenu.openFileCoordX, contextmenu.openFileCoordY)
+            if (contextmenu.isRemoteSession) {
+                var ht = kterminal.hotSpotTypeAt(contextmenu.openFileCoordX, contextmenu.openFileCoordY)
+                if (ht === 1 /* Link */) {
+                    kterminal.activateHotSpotAt(contextmenu.openFileCoordX, contextmenu.openFileCoordY, "click-action")
+                } else if (ht === 3 /* FilePath */) {
+                    terminalContainer._openRemoteFile(contextmenu.openFileCoordX, contextmenu.openFileCoordY)
+                } else {
+                    terminalContainer._openRemotePathText(contextmenu.openFilePath)
+                }
+            } else {
+                if (!kterminal.activateHotSpotAt(contextmenu.openFileCoordX, contextmenu.openFileCoordY, "click-action"))
+                    kterminal.resolveAndOpenFileAt(contextmenu.openFileCoordX, contextmenu.openFileCoordY)
+            }
         }
     }
     MenuItem {
         text: qsTr("Copy")
-        enabled: contextmenu.hasSelection
-        onTriggered: kterminal.copyClipboard()
+        enabled: contextmenu.hasSelection || contextmenu.openFilePath !== ""
+        onTriggered: {
+            if (contextmenu.hasSelection)
+                kterminal.copyClipboard()
+            else
+                kterminal.copyTextToClipboard(contextmenu.openFilePath)
+        }
     }
     MenuSeparator {
         visible: contextmenu.openFilePath !== ""
@@ -69,9 +86,14 @@ Menu {
         title: qsTr("Edit")
         MenuItem {
             text: qsTr("Copy")
-            visible: contextmenu.hasSelection
+            visible: contextmenu.hasSelection || contextmenu.openFilePath !== ""
             height: visible ? implicitHeight : 0
-            onTriggered: kterminal.copyClipboard()
+            onTriggered: {
+                if (contextmenu.hasSelection)
+                    kterminal.copyClipboard()
+                else
+                    kterminal.copyTextToClipboard(contextmenu.openFilePath)
+            }
         }
         MenuItem {
             text: qsTr("Paste")
