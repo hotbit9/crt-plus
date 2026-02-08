@@ -44,6 +44,18 @@ Split any terminal into multiple panes for side-by-side workflows:
 - Each pane maintains its own independent profile, directory, and process tracking
 - Panes can be split recursively — split any pane further in either direction
 
+### Clickable File Paths & URLs
+Cmd+click (macOS) or Ctrl+click (Linux) to open file paths, URLs, and directories directly from terminal output:
+- **File paths**: Opens in your editor — auto-detects Cursor, VS Code, Sublime Text, or uses `$VISUAL`/`$EDITOR`
+- **URLs**: Opens in default browser
+- **Directories**: Opens in Finder (macOS) / file manager (Linux)
+- **Line numbers**: Supports `file.ext:line:col` — jumps straight to the right line
+- **Hover preview**: Hold Cmd/Ctrl and hover to see underline highlighting before clicking
+- **Smart detection**: Handles filenames with spaces, wrapped lines, and quoted paths
+- **Right-click menu**: "Open" item appears when right-clicking on a clickable target
+- **Remote sessions**: Over SSH/mosh, sends editor commands to the remote terminal instead
+- **Configurable**: Set preferred editor in Settings > Advanced
+
 ### Dock Badge Notifications
 Get notified when background tabs, panes, or windows need attention:
 - **Terminal bell** (`\a`) increments the dock icon badge count
