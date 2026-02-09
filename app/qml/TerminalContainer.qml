@@ -24,6 +24,9 @@ import "utils.js" as Utils
 
 ShaderTerminal {
     property string initialWorkDir: ""
+    property string shellCommand: ""
+    property var shellArgs: []
+    signal openInSplitRequested(string program, var args)
     property alias title: terminal.title
     property alias currentDir: terminal.currentDir
     property alias foregroundProcessName: terminal.foregroundProcessName
@@ -55,12 +58,15 @@ ShaderTerminal {
         id: terminal
         profileSettings: mainShader.profileSettings
         initialWorkDir: mainShader.initialWorkDir
+        shellCommand: mainShader.shellCommand
+        shellArgs: mainShader.shellArgs
         anchors.fill: parent
         onSessionFinished: mainShader.sessionFinished()
         onForegroundProcessChanged: mainShader.foregroundProcessChanged()
         onActivated: mainShader.activated()
         onBellRequested: mainShader.bellRequested()
         onActivityDetected: mainShader.activityDetected()
+        onOpenInSplitRequested: function(program, args) { mainShader.openInSplitRequested(program, args) }
     }
 
     function activate() {

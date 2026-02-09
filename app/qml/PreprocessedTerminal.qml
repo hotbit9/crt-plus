@@ -30,10 +30,13 @@ Item{
     id: terminalContainer
     property QtObject profileSettings
     property string initialWorkDir: ""
+    property string shellCommand: ""
+    property var shellArgs: []
     signal sessionFinished()
     signal activated()
     signal bellRequested()
     signal activityDetected()
+    signal openInSplitRequested(string program, var args)
 
     property size virtualResolution: Qt.size(kterminal.totalWidth, kterminal.totalHeight)
     property alias mainTerminal: kterminal
@@ -199,8 +202,12 @@ Item{
         }
 
         function startSession() {
-            // Retrieve the variable set in main.cpp if arguments are passed.
-            if (defaultCmd) {
+            // Custom command for split pane (e.g. ssh -t user@host 'vim +42 /path')
+            if (terminalContainer.shellCommand !== "") {
+                ksession.setShellProgram(terminalContainer.shellCommand);
+                ksession.setArgs(terminalContainer.shellArgs);
+            } else if (defaultCmd) {
+                // Retrieve the variable set in main.cpp if arguments are passed.
                 ksession.setShellProgram(defaultCmd);
                 ksession.setArgs(defaultCmdArgs);
             } else if (appSettings.useCustomCommand) {
@@ -434,6 +441,20 @@ Item{
         return true
     }
 
+    function _buildSshEditorCommand(path, line) {
+        var info = ksession.sshConnectionInfo()
+        if (!info.host || info.host === "") return null
+        var editor = appSettings.remoteEditorCommand || "vim"
+        var remoteCmd = editor + " +" + line + " " + _shellQuotePath(path)
+        var args = ["-t"]
+        if (info.port && info.port !== "")
+            args = args.concat(["-p", info.port])
+        var target = (info.user && info.user !== "") ? info.user + "@" + info.host : info.host
+        args.push(target)
+        args.push(remoteCmd)
+        return { program: "ssh", args: args }
+    }
+
     function _openRemoteFile(x, y) {
         var info = kterminal.hotSpotFilePathAt(x, y)
         if (info === "") return
@@ -441,6 +462,11 @@ Item{
         var path = parts[0], line = parts[1] || "1"
         if (_looksLikeDirectory(path)) {
             ksession.sendText("cd " + _shellQuotePath(path) + "\n")
+        } else if (path.startsWith("/")) {
+            var cmd = _buildSshEditorCommand(path, line)
+            if (cmd) { openInSplitRequested(cmd.program, cmd.args); return }
+            var editor = appSettings.remoteEditorCommand || "vim"
+            ksession.sendText(editor + " +" + line + " " + _shellQuotePath(path) + "\n")
         } else {
             var editor = appSettings.remoteEditorCommand || "vim"
             ksession.sendText(editor + " +" + line + " " + _shellQuotePath(path) + "\n")
@@ -461,6 +487,11 @@ Item{
         var cleanPath = path.replace(/\/+$/, "")
         if (_looksLikeDirectory(cleanPath)) {
             ksession.sendText("cd " + _shellQuotePath(path) + "\n")
+        } else if (path.startsWith("/")) {
+            var cmd = _buildSshEditorCommand(path, line)
+            if (cmd) { openInSplitRequested(cmd.program, cmd.args); return }
+            var editor = appSettings.remoteEditorCommand || "vim"
+            ksession.sendText(editor + " +" + line + " " + _shellQuotePath(path) + "\n")
         } else {
             var editor = appSettings.remoteEditorCommand || "vim"
             ksession.sendText(editor + " +" + line + " " + _shellQuotePath(path) + "\n")

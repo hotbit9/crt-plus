@@ -166,7 +166,7 @@ Item {
     }
 
     // Split this leaf into a branch
-    function split(orientation) {
+    function split(orientation, newTermProps) {
         if (!isLeaf || !terminal) return
 
         var existingTerminal = terminal
@@ -199,7 +199,7 @@ Item {
         newProfile.loadFromString(existingProfile.composeProfileString())
         newProfile.currentProfileIndex = existingProfile.currentProfileIndex
         c2.paneProfileSettings = newProfile
-        var newTerminal = terminalComponent.createObject(c2)
+        var newTerminal = terminalComponent.createObject(c2, newTermProps || {})
         newTerminal.profileSettings = newProfile
         c2.terminal = newTerminal
         _connectTerminalToChild(newTerminal, c2)
@@ -384,6 +384,10 @@ Item {
                 }
             }
         })
+        t.openInSplitRequested.connect(function(program, args) {
+            if (splitPaneRoot.terminal !== t) return
+            splitPaneRoot.split(Qt.Horizontal, { shellCommand: program, shellArgs: args })
+        })
     }
 
     function _connectTerminalToChild(t, childPane) {
@@ -441,6 +445,10 @@ Item {
                     root.badgeCountChanged()
                 }
             }
+        })
+        t.openInSplitRequested.connect(function(program, args) {
+            if (!childPane._alive) return
+            childPane.split(Qt.Horizontal, { shellCommand: program, shellArgs: args })
         })
     }
 
