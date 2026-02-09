@@ -187,7 +187,7 @@ Item {
         existingTerminal.parent = c1
         existingTerminal.anchors.fill = c1
         c1.terminal = existingTerminal
-        _connectTerminalToChild(existingTerminal, c1)
+        _connectTerminalToPane(existingTerminal, c1)
 
         // Create child2 with new terminal + copy of profile
         var c2 = _getSplitPaneComponent().createObject(sv, {
@@ -202,7 +202,7 @@ Item {
         var newTerminal = terminalComponent.createObject(c2, newTermProps || {})
         newTerminal.profileSettings = newProfile
         c2.terminal = newTerminal
-        _connectTerminalToChild(newTerminal, c2)
+        _connectTerminalToPane(newTerminal, c2)
 
         // Set equal sizes
         if (orientation === Qt.Horizontal) {
@@ -266,7 +266,7 @@ Item {
             splitView = null
             child1 = null
             child2 = null
-            _connectTerminal(t)
+            _connectTerminalToPane(t, splitPaneRoot)
         } else {
             // Promote survivor's branch into this node
             var sv = survivor.splitView
@@ -328,127 +328,70 @@ Item {
         return total
     }
 
-    function _connectTerminal(t) {
+    function _connectTerminalToPane(t, pane) {
         t.onTitleChanged.connect(function() {
-            if (splitPaneRoot.terminal !== t) return
-            var root = _rootPane()
+            if (!pane._alive || pane.terminal !== t) return
+            var root = pane._rootPane()
             var leaf = root.focusedLeaf()
             if (leaf && leaf.terminal === t)
                 root.focusedTitleChanged(t.title || "")
         })
         t.onCurrentDirChanged.connect(function() {
-            if (splitPaneRoot.terminal !== t) return
-            var root = _rootPane()
+            if (!pane._alive || pane.terminal !== t) return
+            var root = pane._rootPane()
             var leaf = root.focusedLeaf()
             if (leaf && leaf.terminal === t)
                 root.focusedCurrentDirChanged(t.currentDir || "")
         })
         t.foregroundProcessChanged.connect(function() {
-            if (splitPaneRoot.terminal !== t) return
-            var root = _rootPane()
+            if (!pane._alive || pane.terminal !== t) return
+            var root = pane._rootPane()
             var leaf = root.focusedLeaf()
             if (leaf && leaf.terminal === t)
                 root.focusedForegroundProcessChanged(
                     t.foregroundProcessName || "", t.foregroundProcessLabel || "")
         })
         t.onTerminalSizeChanged.connect(function() {
-            if (splitPaneRoot.terminal !== t) return
-            var root = _rootPane()
+            if (!pane._alive || pane.terminal !== t) return
+            var root = pane._rootPane()
             var leaf = root.focusedLeaf()
             if (leaf && leaf.terminal === t)
                 root.focusedTerminalSizeChanged(t.terminalSize)
         })
         t.sessionFinished.connect(function() {
-            if (splitPaneRoot.terminal !== t) return
-            _handleSessionFinished(splitPaneRoot)
+            if (!pane._alive || pane.terminal !== t) return
+            pane._handleSessionFinished(pane)
         })
         t.activated.connect(function() {
-            if (splitPaneRoot.terminal !== t) return
-            _rootPane().focusPane(splitPaneRoot)
+            if (!pane._alive || pane.terminal !== t) return
+            pane._rootPane().focusPane(pane)
         })
         t.bellRequested.connect(function() {
-            if (splitPaneRoot.terminal !== t) return
-            var root = _rootPane()
-            if (!root.shouldHaveFocus || !splitPaneRoot.isFocused) {
-                splitPaneRoot.paneBadgeCount++
+            if (!pane._alive || pane.terminal !== t) return
+            var root = pane._rootPane()
+            if (!root.shouldHaveFocus || !pane.isFocused) {
+                pane.paneBadgeCount++
                 root.badgeCountChanged()
             }
         })
         t.activityDetected.connect(function() {
-            if (splitPaneRoot.terminal !== t) return
-            var root = _rootPane()
-            if (!root.shouldHaveFocus || !splitPaneRoot.isFocused) {
-                if (splitPaneRoot.paneBadgeCount === 0) {
-                    splitPaneRoot.paneBadgeCount = 1
+            if (!pane._alive || pane.terminal !== t) return
+            var root = pane._rootPane()
+            if (!root.shouldHaveFocus || !pane.isFocused) {
+                if (pane.paneBadgeCount === 0) {
+                    pane.paneBadgeCount = 1
                     root.badgeCountChanged()
                 }
             }
         })
-        t.openInSplitRequested.connect(function(program, args) {
-            if (splitPaneRoot.terminal !== t) return
-            splitPaneRoot.split(Qt.Horizontal, { shellCommand: program, shellArgs: args })
-        })
-    }
-
-    function _connectTerminalToChild(t, childPane) {
-        t.onTitleChanged.connect(function() {
-            if (!childPane._alive) return
-            var root = childPane._rootPane()
-            var leaf = root.focusedLeaf()
-            if (leaf && leaf.terminal === t)
-                root.focusedTitleChanged(t.title || "")
-        })
-        t.onCurrentDirChanged.connect(function() {
-            if (!childPane._alive) return
-            var root = childPane._rootPane()
-            var leaf = root.focusedLeaf()
-            if (leaf && leaf.terminal === t)
-                root.focusedCurrentDirChanged(t.currentDir || "")
-        })
-        t.foregroundProcessChanged.connect(function() {
-            if (!childPane._alive) return
-            var root = childPane._rootPane()
-            var leaf = root.focusedLeaf()
-            if (leaf && leaf.terminal === t)
-                root.focusedForegroundProcessChanged(
-                    t.foregroundProcessName || "", t.foregroundProcessLabel || "")
-        })
-        t.onTerminalSizeChanged.connect(function() {
-            if (!childPane._alive) return
-            var root = childPane._rootPane()
-            var leaf = root.focusedLeaf()
-            if (leaf && leaf.terminal === t)
-                root.focusedTerminalSizeChanged(t.terminalSize)
-        })
-        t.sessionFinished.connect(function() {
-            if (!childPane._alive) return
-            childPane._handleSessionFinished(childPane)
-        })
-        t.activated.connect(function() {
-            if (!childPane._alive) return
-            childPane._rootPane().focusPane(childPane)
-        })
-        t.bellRequested.connect(function() {
-            if (!childPane._alive) return
-            var root = childPane._rootPane()
-            if (!root.shouldHaveFocus || !childPane.isFocused) {
-                childPane.paneBadgeCount++
-                root.badgeCountChanged()
-            }
-        })
-        t.activityDetected.connect(function() {
-            if (!childPane._alive) return
-            var root = childPane._rootPane()
-            if (!root.shouldHaveFocus || !childPane.isFocused) {
-                if (childPane.paneBadgeCount === 0) {
-                    childPane.paneBadgeCount = 1
-                    root.badgeCountChanged()
-                }
-            }
-        })
-        t.openInSplitRequested.connect(function(program, args) {
-            if (!childPane._alive) return
-            childPane.split(Qt.Horizontal, { shellCommand: program, shellArgs: args })
+        // Extract split direction from termProps before passing to split().
+        // Default to horizontal (side-by-side); folders and files override to vertical (stacked).
+        // Holding Option in the context menu switches to horizontal.
+        t.openInSplitRequested.connect(function(termProps) {
+            if (!pane._alive || pane.terminal !== t) return
+            var orientation = termProps.splitOrientation !== undefined ? termProps.splitOrientation : Qt.Horizontal
+            delete termProps.splitOrientation
+            pane.split(orientation, termProps)
         })
     }
 
@@ -523,7 +466,7 @@ Item {
                 props.initialWorkDir = initialWorkDir
             var t = terminalComponent.createObject(splitPaneRoot, props)
             t.profileSettings = paneProfileSettings
-            _connectTerminal(t)
+            _connectTerminalToPane(t, splitPaneRoot)
             terminal = t
         }
     }

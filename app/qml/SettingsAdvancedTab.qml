@@ -67,7 +67,7 @@ ColumnLayout {
                 onCheckedChanged: appSettings.showMenubar = checked
             }
             Label {
-                text: qsTr("Editor command for clickable paths")
+                text: qsTr("Open file paths with (local editor)")
                 Layout.topMargin: 8
             }
             TextField {
@@ -79,7 +79,7 @@ ColumnLayout {
                 function saveSetting() { appSettings.editorCommand = text }
                 Component.onCompleted: settings_window.closing.connect(saveSetting)
             }
-            Label { text: qsTr("Remote editor (used over SSH)") }
+            Label { text: qsTr("Open remote file paths with (over SSH)") }
             TextField {
                 id: remoteEditorCommand
                 Layout.fillWidth: true

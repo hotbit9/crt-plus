@@ -24,9 +24,11 @@ import "utils.js" as Utils
 
 ShaderTerminal {
     property string initialWorkDir: ""
-    property string shellCommand: ""
-    property var shellArgs: []
-    signal openInSplitRequested(string program, var args)
+    // Split pane properties — passed via createObject() initial properties
+    property string shellCommand: ""    // Program to run instead of default shell
+    property var shellArgs: []          // Arguments for shellCommand
+    property string initialSendText: "" // Text sent after prompt detection
+    signal openInSplitRequested(var termProps)
     property alias title: terminal.title
     property alias currentDir: terminal.currentDir
     property alias foregroundProcessName: terminal.foregroundProcessName
@@ -60,13 +62,14 @@ ShaderTerminal {
         initialWorkDir: mainShader.initialWorkDir
         shellCommand: mainShader.shellCommand
         shellArgs: mainShader.shellArgs
+        initialSendText: mainShader.initialSendText
         anchors.fill: parent
         onSessionFinished: mainShader.sessionFinished()
         onForegroundProcessChanged: mainShader.foregroundProcessChanged()
         onActivated: mainShader.activated()
         onBellRequested: mainShader.bellRequested()
         onActivityDetected: mainShader.activityDetected()
-        onOpenInSplitRequested: function(program, args) { mainShader.openInSplitRequested(program, args) }
+        onOpenInSplitRequested: function(termProps) { mainShader.openInSplitRequested(termProps) }
     }
 
     function activate() {

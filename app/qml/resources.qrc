@@ -49,7 +49,6 @@
         <file>TerminalFrame.qml</file>
         <file>menus/WindowMenu.qml</file>
         <file>menus/FullContextMenu.qml</file>
-        <file>menus/ShortContextMenu.qml</file>
         <file>../shaders/terminal_dynamic.vert.qsb</file>
         <file>../shaders/terminal_static.vert.qsb</file>
         <file>../shaders/terminal_frame.vert.qsb</file>

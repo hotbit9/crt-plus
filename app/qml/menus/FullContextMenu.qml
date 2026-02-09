@@ -27,25 +27,56 @@ Menu {
     property int openFileCoordY: 0
     property bool hasSelection: false
     property bool isRemoteSession: false
+    property bool isFile: false
+    property bool isFolder: false
+    property bool isLink: false
+    property bool hasOpenTarget: isFile || isFolder || isLink
+    property bool optionHeld: false
+    property bool showExtendedMenus: false
+
+    Timer {
+        interval: 80; repeat: true
+        running: contextmenu.visible
+        onTriggered: contextmenu.optionHeld = fileIO.isOptionPressed()
+    }
+    onClosed: optionHeld = false
+
     MenuItem {
-        text: qsTr("Open")
-        visible: contextmenu.openFilePath !== ""
+        text: qsTr("Open File")
+        visible: contextmenu.hasOpenTarget
         height: visible ? implicitHeight : 0
-        onTriggered: {
-            if (contextmenu.isRemoteSession) {
-                var ht = kterminal.hotSpotTypeAt(contextmenu.openFileCoordX, contextmenu.openFileCoordY)
-                if (ht === 1 /* Link */) {
-                    kterminal.activateHotSpotAt(contextmenu.openFileCoordX, contextmenu.openFileCoordY, "click-action")
-                } else if (ht === 3 /* FilePath */) {
-                    terminalContainer._openRemoteFile(contextmenu.openFileCoordX, contextmenu.openFileCoordY)
-                } else {
-                    terminalContainer._openRemotePathText(contextmenu.openFilePath)
-                }
-            } else {
-                if (!kterminal.activateHotSpotAt(contextmenu.openFileCoordX, contextmenu.openFileCoordY, "click-action"))
-                    kterminal.resolveAndOpenFileAt(contextmenu.openFileCoordX, contextmenu.openFileCoordY)
-            }
-        }
+        enabled: contextmenu.isFile
+        onTriggered: terminalContainer.actionOpenFile(contextmenu.openFileCoordX, contextmenu.openFileCoordY, contextmenu.openFilePath)
+    }
+    MenuItem {
+        text: contextmenu.optionHeld ? qsTr("Open File in New Pane Right") : qsTr("Open File in New Pane")
+        visible: contextmenu.hasOpenTarget
+        height: visible ? implicitHeight : 0
+        enabled: contextmenu.isFile
+        onTriggered: terminalContainer.actionOpenFileInSplit(contextmenu.openFileCoordX, contextmenu.openFileCoordY, contextmenu.openFilePath,
+            contextmenu.optionHeld ? Qt.Horizontal : Qt.Vertical)
+    }
+    MenuItem {
+        text: qsTr("Open Folder")
+        visible: contextmenu.hasOpenTarget
+        height: visible ? implicitHeight : 0
+        enabled: contextmenu.isFolder
+        onTriggered: terminalContainer.actionOpenFolder(contextmenu.openFilePath)
+    }
+    MenuItem {
+        text: contextmenu.optionHeld ? qsTr("Open Folder in New Pane Right") : qsTr("Open Folder in New Pane")
+        visible: contextmenu.hasOpenTarget
+        height: visible ? implicitHeight : 0
+        enabled: contextmenu.isFolder
+        onTriggered: terminalContainer.actionOpenFolderInSplit(contextmenu.openFilePath,
+            contextmenu.optionHeld ? Qt.Horizontal : Qt.Vertical)
+    }
+    MenuItem {
+        text: qsTr("Open Link")
+        visible: contextmenu.hasOpenTarget
+        height: visible ? implicitHeight : 0
+        enabled: contextmenu.isLink
+        onTriggered: terminalContainer.actionOpenLink(contextmenu.openFileCoordX, contextmenu.openFileCoordY)
     }
     MenuItem {
         text: qsTr("Copy")
@@ -58,7 +89,7 @@ Menu {
         }
     }
     MenuSeparator {
-        visible: contextmenu.openFilePath !== ""
+        visible: contextmenu.hasOpenTarget
         height: visible ? implicitHeight : 0
     }
     MenuItem {
@@ -67,10 +98,14 @@ Menu {
     }
     MenuItem {
         action: showsettingsAction
+        visible: contextmenu.showExtendedMenus
+        height: visible ? implicitHeight : 0
     }
 
     Menu {
         title: qsTr("File")
+        visible: contextmenu.showExtendedMenus
+        height: visible ? implicitHeight : 0
         MenuItem {
             action: newWindowAction
         }
@@ -84,6 +119,8 @@ Menu {
     }
     Menu {
         title: qsTr("Edit")
+        visible: contextmenu.showExtendedMenus
+        height: visible ? implicitHeight : 0
         MenuItem {
             text: qsTr("Copy")
             visible: contextmenu.hasSelection || contextmenu.openFilePath !== ""
@@ -106,6 +143,8 @@ Menu {
     }
     Menu {
         title: qsTr("View")
+        visible: contextmenu.showExtendedMenus
+        height: visible ? implicitHeight : 0
         MenuItem {
             action: fullscreenAction
             visible: fullscreenAction.enabled
@@ -120,6 +159,8 @@ Menu {
     Menu {
         id: profilesMenu
         title: qsTr("Profiles")
+        visible: contextmenu.showExtendedMenus
+        height: visible ? implicitHeight : 0
         Repeater {
             model: appSettings.profilesList
             MenuItem {
@@ -136,6 +177,8 @@ Menu {
     }
     Menu {
         title: qsTr("Help")
+        visible: contextmenu.showExtendedMenus
+        height: visible ? implicitHeight : 0
         MenuItem {
             action: showAboutAction
         }

@@ -30,13 +30,14 @@ Item{
     id: terminalContainer
     property QtObject profileSettings
     property string initialWorkDir: ""
-    property string shellCommand: ""
-    property var shellArgs: []
+    property string shellCommand: ""   // Custom program for split panes (e.g. "ssh")
+    property var shellArgs: []         // Arguments for shellCommand (e.g. ["-t", "user@host"])
+    property string initialSendText: "" // Text to send after prompt is detected (via sendTextOnceReady)
     signal sessionFinished()
     signal activated()
     signal bellRequested()
     signal activityDetected()
-    signal openInSplitRequested(string program, var args)
+    signal openInSplitRequested(var termProps) // Emitted to open a new split pane with given properties
 
     property size virtualResolution: Qt.size(kterminal.totalWidth, kterminal.totalHeight)
     property alias mainTerminal: kterminal
@@ -202,7 +203,7 @@ Item{
         }
 
         function startSession() {
-            // Custom command for split pane (e.g. ssh -t user@host 'vim +42 /path')
+            // Custom command for split pane (e.g. ssh -t user@host)
             if (terminalContainer.shellCommand !== "") {
                 ksession.setShellProgram(terminalContainer.shellCommand);
                 ksession.setArgs(terminalContainer.shellArgs);
@@ -223,6 +224,10 @@ Item{
             if (wd)
                 ksession.initialWorkingDirectory = wd;
 
+            // Queue text to send after the shell prompt appears (e.g. cd after SSH login)
+            if (terminalContainer.initialSendText !== "")
+                ksession.sendTextOnceReady(terminalContainer.initialSendText)
+
             ksession.startShellProgram();
             forceActiveFocus();
         }
@@ -235,21 +240,19 @@ Item{
         Component.onDestruction: {
             profileSettings.fontManager.terminalFontChanged.disconnect(handleFontChanged);
         }
+
     }
 
     Component {
-        id: shortContextMenu
-        ShortContextMenu { }
-    }
-
-    Component {
-        id: fullContextMenu
-        FullContextMenu { }
+        id: contextMenuComponent
+        FullContextMenu {
+            showExtendedMenus: !(appSettings.isMacOS || (appSettings.showMenubar && !terminalWindow.fullscreen))
+        }
     }
 
     Loader {
         id: menuLoader
-        sourceComponent: (appSettings.isMacOS || (appSettings.showMenubar && !terminalWindow.fullscreen) ? shortContextMenu : fullContextMenu)
+        sourceComponent: contextMenuComponent
     }
     property alias contextmenu: menuLoader.item
     Connections {
@@ -288,27 +291,45 @@ Item{
                 var isRemote = _isRemoteSession()
                 var hasSelection = kterminal.hasSelection()
                 var openTarget = ""
-                // Skip path/URL detection when there's a text selection —
-                // the user's selection takes priority for Copy
+                var isFile = false, isFolder = false, isLink = false
                 if (!hasSelection) {
                     if (!isRemote) {
                         var rpath = kterminal.resolveFilePathAt(rcoord.x, rcoord.y)
                         if (rpath !== "") {
-                            // Use display text from terminal, not resolved absolute path
                             var displayText = kterminal.extractPathTextAt(rcoord.x, rcoord.y)
                             openTarget = displayText !== "" ? displayText : rpath
+                            isFile = true
                         }
                     }
                     if (openTarget === "") {
                         var ht = kterminal.hotSpotTypeAt(rcoord.x, rcoord.y)
-                        if (ht === 1 /* Link */ || ht === 3 /* FilePath */) {
-                            var text = kterminal.hotSpotTextAt(rcoord.x, rcoord.y)
-                            if (text !== "") openTarget = text
+                        if (ht === 1 /* Link */) {
+                            var linkText = kterminal.hotSpotTextAt(rcoord.x, rcoord.y)
+                            if (linkText !== "") { openTarget = linkText; isLink = true }
+                        } else if (ht === 3 /* FilePath */) {
+                            var fileText = kterminal.hotSpotTextAt(rcoord.x, rcoord.y)
+                            if (fileText !== "") {
+                                var fullText = _cleanPathText(kterminal.extractPathTextAt(rcoord.x, rcoord.y))
+                                if ((fullText !== "" && fullText.endsWith("/")) || _looksLikeDirectory(fileText.split(":")[0])) {
+                                    isFolder = true
+                                    openTarget = fullText !== "" ? fullText : fileText
+                                } else {
+                                    isFile = true
+                                    openTarget = fileText
+                                }
+                            }
                         }
                     }
                     if (openTarget === "" && isRemote) {
                         var remotePath = kterminal.extractPathTextAt(rcoord.x, rcoord.y)
-                        if (remotePath !== "") openTarget = remotePath
+                        if (remotePath !== "") {
+                            openTarget = remotePath
+                            var cleanedRemote = _cleanPathText(remotePath)
+                            if (cleanedRemote.endsWith("/"))
+                                isFolder = true
+                            else
+                                isFile = true
+                        }
                     }
                 }
                 contextmenu.openFilePath = openTarget
@@ -316,7 +337,9 @@ Item{
                 contextmenu.openFileCoordY = rcoord.y
                 contextmenu.hasSelection = hasSelection
                 contextmenu.isRemoteSession = isRemote
-                // Highlight the target while the context menu is open
+                contextmenu.isFile = isFile
+                contextmenu.isFolder = isFolder
+                contextmenu.isLink = isLink
                 if (openTarget !== "")
                     kterminal.updateHoverHotSpot(rcoord.x, rcoord.y, true, isRemote)
                 contextmenu.popup();
@@ -431,21 +454,56 @@ Item{
     }
 
     function _looksLikeDirectory(path) {
-        if (path.endsWith("/")) return true
-        var basename = path.split("/").pop()
-        var dotIdx = basename.lastIndexOf(".")
-        if (dotIdx >= 1 && dotIdx < basename.length - 1) {
-            var ext = basename.substring(dotIdx + 1)
-            if (ext.length >= 1 && ext.length <= 10) return false
-        }
-        return true
+        // Only an explicit trailing slash indicates a directory.
+        // We can't check the remote filesystem, and defaulting to "file"
+        // is the better UX (covers /etc/passwd, Makefile, LICENSE, etc.)
+        return path.endsWith("/")
     }
 
-    function _buildSshEditorCommand(path, line) {
+    function _cleanPathText(text) {
+        // Strip surrounding quotes
+        if (text.length >= 2) {
+            var first = text[0], last = text[text.length - 1]
+            if ((first === "'" && last === "'") || (first === '"' && last === '"') || (first === '`' && last === '`'))
+                text = text.substring(1, text.length - 1)
+        }
+        // Strip trailing bare punctuation (not part of :line:col)
+        text = text.replace(/[:;,]+$/, "")
+        return text
+    }
+
+    function _getRemoteCwd() {
+        var title = ksession.title
+        if (!title || title === "") return ""
+        // Common formats: "user@host: ~/path", "user@host:/path", "~/path", "/path"
+        var path = ""
+        var colonIdx = title.indexOf(": ")
+        if (colonIdx !== -1) {
+            path = title.substring(colonIdx + 2).trim()
+        } else {
+            // Try "user@host:/path" (no space after colon)
+            var atIdx = title.indexOf("@")
+            if (atIdx !== -1) {
+                var c = title.indexOf(":", atIdx)
+                if (c !== -1)
+                    path = title.substring(c + 1).trim()
+            } else if (title.startsWith("/") || title.startsWith("~")) {
+                path = title.trim()
+            }
+        }
+        if (path.startsWith("/") || path.startsWith("~"))
+            return path
+        return ""
+    }
+
+    function _buildSshEditorCommand(path, line, cwd) {
         var info = ksession.sshConnectionInfo()
         if (!info.host || info.host === "") return null
         var editor = appSettings.remoteEditorCommand || "vim"
-        var remoteCmd = editor + " +" + line + " " + _shellQuotePath(path)
+        var remoteCmd = ""
+        if (cwd && cwd !== "")
+            remoteCmd = "cd " + _shellQuotePath(cwd) + " && "
+        remoteCmd += editor + " +" + line + " " + _shellQuotePath(path)
         var args = ["-t"]
         if (info.port && info.port !== "")
             args = args.concat(["-p", info.port])
@@ -455,25 +513,132 @@ Item{
         return { program: "ssh", args: args }
     }
 
-    function _openRemoteFile(x, y) {
-        var info = kterminal.hotSpotFilePathAt(x, y)
-        if (info === "") return
-        var parts = info.split(":")
-        var path = parts[0], line = parts[1] || "1"
-        if (_looksLikeDirectory(path)) {
-            ksession.sendText("cd " + _shellQuotePath(path) + "\n")
-        } else if (path.startsWith("/")) {
-            var cmd = _buildSshEditorCommand(path, line)
-            if (cmd) { openInSplitRequested(cmd.program, cmd.args); return }
+    function _getFileInfo(x, y, pathText) {
+        var ht = kterminal.hotSpotTypeAt(x, y)
+        if (ht === 3) {
+            var info = kterminal.hotSpotFilePathAt(x, y)
+            if (info !== "") {
+                var parts = info.split(":")
+                return { path: parts[0], line: parts[1] || "1" }
+            }
+        }
+        if (!_isRemoteSession()) {
+            var resolved = kterminal.resolveFilePathAt(x, y)
+            if (resolved !== "") {
+                var rparts = resolved.split(":")
+                return { path: rparts[0], line: rparts[1] || "1" }
+            }
+        }
+        if (pathText && pathText !== "") {
+            var cleaned = _cleanPathText(pathText)
+            var suffixMatch = cleaned.match(/^(.+?):(\d+)(?::(\d+))?$/)
+            if (suffixMatch) return { path: suffixMatch[1], line: suffixMatch[2] }
+            return { path: cleaned, line: "1" }
+        }
+        return null
+    }
+
+    function actionOpenFile(x, y, pathText) {
+        if (_isRemoteSession()) {
+            var fi = _getFileInfo(x, y, pathText)
+            if (!fi) return
             var editor = appSettings.remoteEditorCommand || "vim"
-            ksession.sendText(editor + " +" + line + " " + _shellQuotePath(path) + "\n")
+            ksession.sendText(editor + " +" + fi.line + " " + _shellQuotePath(fi.path) + "\n")
         } else {
-            var editor = appSettings.remoteEditorCommand || "vim"
-            ksession.sendText(editor + " +" + line + " " + _shellQuotePath(path) + "\n")
+            if (!kterminal.activateHotSpotAt(x, y, "click-action"))
+                kterminal.resolveAndOpenFileAt(x, y)
         }
     }
 
+    // Opens a file in a new split pane. For remote sessions, opens via SSH.
+    // orientation: Qt.Vertical (below) or Qt.Horizontal (right), defaults to Vertical.
+    function actionOpenFileInSplit(x, y, pathText, orientation) {
+        var splitDir = orientation !== undefined ? orientation : Qt.Vertical
+        var fi = _getFileInfo(x, y, pathText)
+        if (!fi) return
+        if (_isRemoteSession()) {
+            var cwd = fi.path.startsWith("/") ? "" : _getRemoteCwd()
+            var cmd = _buildSshEditorCommand(fi.path, fi.line, cwd)
+            if (cmd) { openInSplitRequested({ shellCommand: cmd.program, shellArgs: cmd.args, splitOrientation: splitDir }); return }
+            var editor = appSettings.remoteEditorCommand || "vim"
+            ksession.sendText(editor + " +" + fi.line + " " + _shellQuotePath(fi.path) + "\n")
+        } else {
+            var localEditor = appSettings.remoteEditorCommand || "vim"
+            openInSplitRequested({ shellCommand: localEditor, shellArgs: ["+" + fi.line, fi.path], splitOrientation: splitDir })
+        }
+    }
+
+    function actionOpenFolder(folderPath) {
+        folderPath = _cleanPathText(folderPath)
+        if (_isRemoteSession()) {
+            ksession.sendText("cd " + _shellQuotePath(folderPath) + "\n")
+        } else {
+            var absPath = folderPath.startsWith("/") ? folderPath : terminalContainer.currentDir + "/" + folderPath
+            Qt.openUrlExternally("file://" + absPath)
+        }
+    }
+
+    // Opens a folder in a new split pane. For remote sessions, opens a new SSH
+    // connection and sends `cd /path` after the prompt is detected.
+    // orientation: Qt.Vertical (below) or Qt.Horizontal (right), defaults to Vertical.
+    function actionOpenFolderInSplit(folderPath, orientation) {
+        var splitDir = orientation !== undefined ? orientation : Qt.Vertical
+        folderPath = _cleanPathText(folderPath)
+        if (_isRemoteSession()) {
+            var info = ksession.sshConnectionInfo()
+            if (info.host && info.host !== "") {
+                var sshArgs = ["-t"]
+                if (info.port && info.port !== "")
+                    sshArgs = sshArgs.concat(["-p", info.port])
+                var target = (info.user && info.user !== "") ? info.user + "@" + info.host : info.host
+                sshArgs.push(target)
+                var cdCmd = " cd " + _shellQuotePath(folderPath) + "\n"
+                openInSplitRequested({ shellCommand: "ssh", shellArgs: sshArgs, initialSendText: cdCmd, splitOrientation: splitDir })
+                return
+            }
+            ksession.sendText("cd " + _shellQuotePath(folderPath) + "\n")
+        } else {
+            var absPath = folderPath.startsWith("/") ? folderPath : terminalContainer.currentDir + "/" + folderPath
+            openInSplitRequested({ initialWorkDir: absPath, splitOrientation: splitDir })
+        }
+    }
+
+    function actionOpenLink(x, y) {
+        kterminal.activateHotSpotAt(x, y, "click-action")
+    }
+
+    function _openRemotePathAndEdit(path, line) {
+        if (_looksLikeDirectory(path)) {
+            ksession.sendText("cd " + _shellQuotePath(path) + "\n")
+            return
+        }
+        var cwd = path.startsWith("/") ? "" : _getRemoteCwd()
+        var cmd = _buildSshEditorCommand(path, line, cwd)
+        if (cmd) {
+            openInSplitRequested({ shellCommand: cmd.program, shellArgs: cmd.args, splitOrientation: Qt.Vertical })
+            return
+        }
+        var editor = appSettings.remoteEditorCommand || "vim"
+        ksession.sendText(editor + " +" + line + " " + _shellQuotePath(path) + "\n")
+    }
+
+    function _openRemoteFile(x, y) {
+        var info = kterminal.hotSpotFilePathAt(x, y)
+        if (info === "") return
+        // The hotspot regex may match a partial path (e.g. "bitsbytes.jp"
+        // looks like a file extension in "/var/.../bitsbytes.jp/dev/cur/").
+        // Check the broader text to detect trailing "/" that indicates a directory.
+        var fullText = _cleanPathText(kterminal.extractPathTextAt(x, y))
+        if (fullText !== "" && fullText.endsWith("/")) {
+            ksession.sendText("cd " + _shellQuotePath(fullText) + "\n")
+            return
+        }
+        var parts = info.split(":")
+        _openRemotePathAndEdit(parts[0], parts[1] || "1")
+    }
+
     function _openRemotePathText(pathText) {
+        pathText = _cleanPathText(pathText)
         var suffixMatch = pathText.match(/^(.+?):(\d+)(?::(\d+))?$/)
         var path, line
         if (suffixMatch) {
@@ -483,19 +648,11 @@ Item{
             path = pathText
             line = "1"
         }
-        // Strip trailing slash for directory check but keep in cd path
-        var cleanPath = path.replace(/\/+$/, "")
-        if (_looksLikeDirectory(cleanPath)) {
+        if (path.endsWith("/")) {
             ksession.sendText("cd " + _shellQuotePath(path) + "\n")
-        } else if (path.startsWith("/")) {
-            var cmd = _buildSshEditorCommand(path, line)
-            if (cmd) { openInSplitRequested(cmd.program, cmd.args); return }
-            var editor = appSettings.remoteEditorCommand || "vim"
-            ksession.sendText(editor + " +" + line + " " + _shellQuotePath(path) + "\n")
-        } else {
-            var editor = appSettings.remoteEditorCommand || "vim"
-            ksession.sendText(editor + " +" + line + " " + _shellQuotePath(path) + "\n")
+            return
         }
+        _openRemotePathAndEdit(path, line)
     }
 
     ShaderEffectSource{
