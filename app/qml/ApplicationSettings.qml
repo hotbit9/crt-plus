@@ -66,6 +66,7 @@ QtObject {
 
     property string editorCommand: ""
     property string remoteEditorCommand: ""
+    property string promptCharacters: "$, #, %, >"
 
     property string _backgroundColor: "#000000"
     property string _fontColor: "#ff8100"

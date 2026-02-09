@@ -226,7 +226,7 @@ Item{
 
             // Queue text to send after the shell prompt appears (e.g. cd after SSH login)
             if (terminalContainer.initialSendText !== "")
-                ksession.sendTextOnceReady(terminalContainer.initialSendText)
+                ksession.sendTextOnceReady(terminalContainer.initialSendText, appSettings.promptCharacters)
 
             ksession.startShellProgram();
             forceActiveFocus();

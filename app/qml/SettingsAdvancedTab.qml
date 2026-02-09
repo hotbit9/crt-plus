@@ -89,6 +89,16 @@ ColumnLayout {
                 function saveSetting() { appSettings.remoteEditorCommand = text }
                 Component.onCompleted: settings_window.closing.connect(saveSetting)
             }
+            Label { text: qsTr("Shell prompt characters (for split pane detection)") }
+            TextField {
+                id: promptCharacters
+                Layout.fillWidth: true
+                text: appSettings.promptCharacters
+                placeholderText: qsTr("Default: $, #, %, >")
+                onEditingFinished: appSettings.promptCharacters = text
+                function saveSetting() { appSettings.promptCharacters = text }
+                Component.onCompleted: settings_window.closing.connect(saveSetting)
+            }
         }
     }
 
