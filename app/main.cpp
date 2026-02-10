@@ -178,7 +178,20 @@ int main(int argc, char *argv[])
         QObject *rootObject = engine.rootObjects().first();
         QMenu *dockMenu = new QMenu(nullptr);
         dockMenu->addAction(QObject::tr("New Window"), [rootObject]() {
-            QMetaObject::invokeMethod(rootObject, "createWindow", Q_ARG(QVariant, QString()));
+            QMetaObject::invokeMethod(rootObject, "createWindow",
+                                      Q_ARG(QVariant, QString()),
+                                      Q_ARG(QVariant, QString()));
+        });
+
+        // "New Pane" splits the focused pane below. Holding Option shows
+        // "New Pane Right" via native macOS alternate menu item (splits right).
+        dockMenu->addAction(QObject::tr("New Pane"), [rootObject]() {
+            QMetaObject::invokeMethod(rootObject, "splitFocusedPane",
+                                      Q_ARG(QVariant, (int)Qt::Vertical));
+        });
+        QAction *newPaneRightAction = dockMenu->addAction(QObject::tr("New Pane Right"), [rootObject]() {
+            QMetaObject::invokeMethod(rootObject, "splitFocusedPane",
+                                      Q_ARG(QVariant, (int)Qt::Horizontal));
         });
 
         QMenu *profilesMenu = dockMenu->addMenu(QObject::tr("New Window with Profile"));
@@ -192,11 +205,13 @@ int main(int argc, char *argv[])
             QString profileString = profile["profileString"].toString();
             profilesMenu->addAction(name, [rootObject, profileString]() {
                 QMetaObject::invokeMethod(rootObject, "createWindow",
-                                          Q_ARG(QVariant, profileString));
+                                          Q_ARG(QVariant, profileString),
+                                          Q_ARG(QVariant, QString()));
             });
         }
 
         dockMenu->setAsDockMenu();
+        markAsAlternate(dockMenu, newPaneRightAction);
 
         // Handle folder drag-and-drop onto the dock icon
         app.installEventFilter(new FileOpenHandler(rootObject, &app));

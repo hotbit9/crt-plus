@@ -39,6 +39,10 @@ ApplicationWindow {
     property alias profileSettings: profileSettings
     readonly property int badgeCount: terminalTabs.totalBadgeCount
 
+    function splitFocusedPane(orientation) {
+        _splitGuarded(orientation)
+    }
+
     ProfileSettings {
         id: profileSettings
     }
@@ -47,6 +51,20 @@ ApplicationWindow {
     onFullscreenChanged: visibility = (fullscreen ? Window.FullScreen : Window.Windowed)
 
     menuBar: WindowMenu { }
+
+    // Guard against Qt6 shortcut bug: Meta+Shift+D triggers both Meta+Shift+D
+    // and Meta+D, causing double splits from a single keypress.
+    property real _lastSplitTime: 0
+    function _splitGuarded(orientation) {
+        var now = Date.now()
+        if (now - _lastSplitTime < 300) return
+        _lastSplitTime = now
+        var root = terminalTabs.currentRootSplitPane()
+        if (root) {
+            var leaf = root.focusedLeaf()
+            if (leaf) leaf.split(orientation)
+        }
+    }
 
     property real normalizedWindowScale: 1024 / ((0.5 * width + 0.5 * height))
 
@@ -185,25 +203,13 @@ ApplicationWindow {
         id: splitHorizontalAction
         text: qsTr("Split Right")
         shortcut: appSettings.isMacOS ? "Meta+D" : "Ctrl+Shift+D"
-        onTriggered: {
-            var root = terminalTabs.currentRootSplitPane()
-            if (root) {
-                var leaf = root.focusedLeaf()
-                if (leaf) leaf.split(Qt.Horizontal)
-            }
-        }
+        onTriggered: _splitGuarded(Qt.Horizontal)
     }
     Action {
         id: splitVerticalAction
         text: qsTr("Split Down")
         shortcut: appSettings.isMacOS ? "Meta+Shift+D" : "Ctrl+Shift+E"
-        onTriggered: {
-            var root = terminalTabs.currentRootSplitPane()
-            if (root) {
-                var leaf = root.focusedLeaf()
-                if (leaf) leaf.split(Qt.Vertical)
-            }
-        }
+        onTriggered: _splitGuarded(Qt.Vertical)
     }
     Action {
         id: nextPaneAction
@@ -248,6 +254,12 @@ ApplicationWindow {
     }
     onClosing: function(close) {
         close.accepted = false
+        // If split panes exist, close the focused pane instead of the window
+        var root = terminalTabs.currentRootSplitPane()
+        if (root && root.hasMultipleLeaves()) {
+            root.closeFocusedPane()
+            return
+        }
         profileSettings.syncToAppSettings()
         appRoot.closeWindow(terminalWindow)
     }

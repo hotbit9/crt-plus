@@ -178,6 +178,7 @@ Item{
         }
 
         function handleFontChanged(fontFamily, pixelSize, lineSpacing, screenScaling, fontWidth, fallbackFontFamily, lowResolutionFont) {
+            if (!kterminal) return
             kterminal.lineSpacing = lineSpacing;
             kterminal.antialiasText = !lowResolutionFont;
             kterminal.smooth = !lowResolutionFont;

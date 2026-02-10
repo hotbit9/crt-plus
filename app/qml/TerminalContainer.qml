@@ -28,6 +28,7 @@ ShaderTerminal {
     property string shellCommand: ""    // Program to run instead of default shell
     property var shellArgs: []          // Arguments for shellCommand
     property string initialSendText: "" // Text sent after prompt detection
+    property var _connectionToken: null  // Used by SplitPane to invalidate stale signal handlers
     signal openInSplitRequested(var termProps)
     property alias title: terminal.title
     property alias currentDir: terminal.currentDir

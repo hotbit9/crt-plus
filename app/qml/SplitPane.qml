@@ -41,6 +41,10 @@ Item {
     property string initialWorkDir: ""
     property bool _syncingPaneProfile: false
     property var _splitPaneComponentCache: null
+    // When a leaf is promoted via removeChild, the survivor SplitPane is kept
+    // as a transparent wrapper so the terminal inside it never gets reparented
+    // (reparenting QQuickPaintedItem + ShaderEffect chains corrupts rendering).
+    property Item _terminalWrapper: null
 
     function _getSplitPaneComponent() {
         if (!_splitPaneComponentCache)
@@ -54,7 +58,7 @@ Item {
     }
 
     function _createPaneProfile() {
-        var ps = profileSettingsComponent.createObject(splitPaneRoot)
+        var ps = profileSettingsComponent.createObject(terminalWindow)
         ps.loadFromString(terminalWindow.profileSettings.composeProfileString())
         ps.currentProfileIndex = terminalWindow.profileSettings.currentProfileIndex
         return ps
@@ -83,7 +87,7 @@ Item {
         return null
     }
 
-    // Recursively collect all leaf SplitPanes
+    // Recursively collect all leaf SplitPanes in left-to-right order
     function allLeaves() {
         if (isLeaf) return [splitPaneRoot]
         var result = []
@@ -98,7 +102,7 @@ Item {
         for (var i = 0; i < leaves.length; i++) {
             leaves[i].isFocused = (leaves[i] === leaf)
         }
-        if (leaf && leaf.terminal) {
+        if (leaf && leaf.terminal && leaf._alive) {
             leaf.terminal.activate()
             _emitFocusedSignals(leaf)
             if (showBorder !== false && leaves.length > 1)
@@ -111,6 +115,7 @@ Item {
         }
     }
 
+    // Push a pane's profile to the window-level profileSettings (and appSettings)
     function _syncPaneToWindow(leaf) {
         if (!leaf || !leaf.paneProfileSettings) return
         _syncingPaneProfile = true
@@ -148,6 +153,7 @@ Item {
         return 0
     }
 
+    // Emit all focused-* signals so TerminalTabs can update its model
     function _emitFocusedSignals(leaf) {
         if (!leaf || !leaf.terminal) return
         focusedTitleChanged(leaf.terminal.title || "")
@@ -171,38 +177,51 @@ Item {
 
         var existingTerminal = terminal
         var existingProfile = paneProfileSettings
+        var wrapper = _terminalWrapper
 
         // Create SplitView
         var sv = splitViewComponent.createObject(splitPaneRoot, {
             "orientation": orientation
         })
 
-        // Create child1 (gets existing terminal + profile)
+        // Create child1 — gets existing terminal and shares existing profile.
+        // All profiles are parented to terminalWindow (not to child panes)
+        // so they survive child pane destruction without cascade-delete issues.
         var c1 = _getSplitPaneComponent().createObject(sv, {
             "parentSplitPane": splitPaneRoot,
             "isFocused": false,
             "_skipAutoCreate": true
         })
         c1.paneProfileSettings = existingProfile
-        existingTerminal.parent = c1
+        existingTerminal.anchors.fill = undefined
+        fileIO.reparentItem(existingTerminal, c1)
         existingTerminal.anchors.fill = c1
         c1.terminal = existingTerminal
-        _connectTerminalToPane(existingTerminal, c1)
+        _rootPane()._connectTerminalToPane(existingTerminal, c1)
 
-        // Create child2 with new terminal + copy of profile
+        // Clean up wrapper from a previous removeChild. The terminal was just
+        // reparented out of it, so the wrapper is empty and safe to destroy.
+        if (wrapper) {
+            wrapper.terminal = null
+            wrapper.paneProfileSettings = null
+            wrapper.visible = false
+            wrapper.destroy()
+        }
+
+        // Create child2 with new terminal + new profile (parented to terminalWindow)
         var c2 = _getSplitPaneComponent().createObject(sv, {
             "parentSplitPane": splitPaneRoot,
             "isFocused": false,
             "_skipAutoCreate": true
         })
-        var newProfile = profileSettingsComponent.createObject(c2)
+        var newProfile = profileSettingsComponent.createObject(terminalWindow)
         newProfile.loadFromString(existingProfile.composeProfileString())
         newProfile.currentProfileIndex = existingProfile.currentProfileIndex
         c2.paneProfileSettings = newProfile
         var newTerminal = terminalComponent.createObject(c2, newTermProps || {})
         newTerminal.profileSettings = newProfile
         c2.terminal = newTerminal
-        _connectTerminalToPane(newTerminal, c2)
+        _rootPane()._connectTerminalToPane(newTerminal, c2)
 
         // Set equal sizes
         if (orientation === Qt.Horizontal) {
@@ -216,6 +235,7 @@ Item {
         // Convert from leaf to branch
         paneProfileSettings = null
         terminal = null
+        _terminalWrapper = null
         splitView = sv
         child1 = c1
         child2 = c2
@@ -242,67 +262,65 @@ Item {
         var survivor = (deadChild === child1) ? child2 : child1
         var oldSv = splitView
 
-        // Destroy the dead child's contents
+        // Hide and destroy the dead child ONLY (NOT the SplitView yet — hiding
+        // the SplitView would hide the survivor's subtree, causing its
+        // ShaderEffectSource to stop capturing and go ghostly).
         deadChild._alive = false
+        deadChild.visible = false
         if (deadChild.isLeaf) {
-            if (deadChild.terminal) deadChild.terminal.destroy()
-            if (deadChild.paneProfileSettings) deadChild.paneProfileSettings.destroy()
+            _destroyLeafContents(deadChild)
         } else {
             _destroyTree(deadChild)
         }
         deadChild.destroy()
 
         if (survivor.isLeaf) {
-            // Promote survivor's terminal + profile into this node
-            var t = survivor.terminal
-            var ps = survivor.paneProfileSettings
-            survivor.terminal = null
-            survivor.paneProfileSettings = null
-            t.parent = splitPaneRoot
-            t.anchors.fill = splitPaneRoot
-            terminal = t
-            paneProfileSettings = ps
+            // Leaf promotion: wrap survivor so its terminal never moves
+            _reparentAsWrapper(survivor)
+            terminal = survivor.terminal
+            paneProfileSettings = survivor.paneProfileSettings
+            _terminalWrapper = survivor
             splitOrientation = -1
             splitView = null
             child1 = null
             child2 = null
-            _connectTerminalToPane(t, splitPaneRoot)
+            _rootPane()._connectTerminalToPane(terminal, splitPaneRoot)
         } else {
-            // Promote survivor's branch into this node
-            var sv = survivor.splitView
-            var sc1 = survivor.child1
-            var sc2 = survivor.child2
-            survivor.splitView = null
-            survivor.child1 = null
-            survivor.child2 = null
-
-            sv.parent = splitPaneRoot
-            sv.anchors.fill = splitPaneRoot
-            sc1.parentSplitPane = splitPaneRoot
-            sc2.parentSplitPane = splitPaneRoot
-
-            splitView = sv
-            child1 = sc1
-            child2 = sc2
+            // Branch promotion: wrap survivor so its terminal descendants never move
+            _reparentAsWrapper(survivor)
+            splitView = survivor.splitView
+            child1 = survivor.child1
+            child2 = survivor.child2
             splitOrientation = survivor.splitOrientation
+            _terminalWrapper = survivor
+
+            // Children point to root for tree traversal
+            if (child1) child1.parentSplitPane = splitPaneRoot
+            if (child2) child2.parentSplitPane = splitPaneRoot
         }
 
-        survivor._alive = false
-        survivor.destroy()
-        if (oldSv) oldSv.destroy()
+        // NOW hide and destroy the old SplitView — survivor has been reparented out.
+        oldSv.visible = false
+        oldSv.destroy()
 
-        // Focus the next available leaf
+        // Ensure all surviving terminals are visible (reparenting out of a
+        // hidden SplitView can leave inherited visibility stale).
         var root = _rootPane()
         var leaves = root.allLeaves()
+        for (var i = 0; i < leaves.length; i++) {
+            if (leaves[i].terminal)
+                leaves[i].terminal.visible = true
+        }
         if (leaves.length > 0)
             root.focusPane(leaves[0])
     }
 
+    // Recursively destroy an entire subtree (used when a branch is the dead child)
     function _destroyTree(node) {
         node._alive = false
+        node.visible = false
         if (node.isLeaf) {
-            if (node.terminal) node.terminal.destroy()
-            if (node.paneProfileSettings) node.paneProfileSettings.destroy()
+            _destroyLeafContents(node)
         } else {
             if (node.child1) _destroyTree(node.child1)
             if (node.child2) _destroyTree(node.child2)
@@ -310,10 +328,33 @@ Item {
         }
     }
 
+    // Walk up the tree to find the root SplitPane (the one owned by TerminalTabs)
     function _rootPane() {
         var node = splitPaneRoot
         while (node.parentSplitPane) node = node.parentSplitPane
         return node
+    }
+
+    // Invalidate signal token, hide, and destroy a leaf's terminal + profile
+    function _destroyLeafContents(node) {
+        if (node.terminal) {
+            if (node.terminal._connectionToken)
+                node.terminal._connectionToken.valid = false
+            node.terminal.visible = false
+            node.terminal.destroy()
+        }
+        if (node.paneProfileSettings) node.paneProfileSettings.destroy()
+    }
+
+    // Reparent a survivor SplitPane to this node as a transparent wrapper.
+    // Only the plain Item moves — any terminals inside stay in place,
+    // preserving their QQuickPaintedItem + ShaderEffect rendering chain.
+    function _reparentAsWrapper(item) {
+        item.anchors.fill = undefined
+        item.parent = splitPaneRoot
+        fileIO.reparentObject(item, splitPaneRoot)
+        item.anchors.fill = splitPaneRoot
+        item.parentSplitPane = null
     }
 
     function hasMultipleLeaves() {
@@ -328,23 +369,32 @@ Item {
         return total
     }
 
+    // Signal connections use closures that capture `pane`. When a terminal is
+    // promoted via removeChild, it gets reconnected to a new pane, but the old
+    // anonymous connections can't be disconnected. A plain JS token object acts
+    // as a gate: when reconnecting, the old token is invalidated so old handlers
+    // bail out immediately without touching the (possibly destroyed) old pane.
     function _connectTerminalToPane(t, pane) {
+        var token = { valid: true }
+        if (t._connectionToken) t._connectionToken.valid = false
+        t._connectionToken = token
+
         t.onTitleChanged.connect(function() {
-            if (!pane._alive || pane.terminal !== t) return
+            if (!token.valid) return
             var root = pane._rootPane()
             var leaf = root.focusedLeaf()
             if (leaf && leaf.terminal === t)
                 root.focusedTitleChanged(t.title || "")
         })
         t.onCurrentDirChanged.connect(function() {
-            if (!pane._alive || pane.terminal !== t) return
+            if (!token.valid) return
             var root = pane._rootPane()
             var leaf = root.focusedLeaf()
             if (leaf && leaf.terminal === t)
                 root.focusedCurrentDirChanged(t.currentDir || "")
         })
         t.foregroundProcessChanged.connect(function() {
-            if (!pane._alive || pane.terminal !== t) return
+            if (!token.valid) return
             var root = pane._rootPane()
             var leaf = root.focusedLeaf()
             if (leaf && leaf.terminal === t)
@@ -352,22 +402,22 @@ Item {
                     t.foregroundProcessName || "", t.foregroundProcessLabel || "")
         })
         t.onTerminalSizeChanged.connect(function() {
-            if (!pane._alive || pane.terminal !== t) return
+            if (!token.valid) return
             var root = pane._rootPane()
             var leaf = root.focusedLeaf()
             if (leaf && leaf.terminal === t)
                 root.focusedTerminalSizeChanged(t.terminalSize)
         })
         t.sessionFinished.connect(function() {
-            if (!pane._alive || pane.terminal !== t) return
+            if (!token.valid) return
             pane._handleSessionFinished(pane)
         })
         t.activated.connect(function() {
-            if (!pane._alive || pane.terminal !== t) return
+            if (!token.valid) return
             pane._rootPane().focusPane(pane)
         })
         t.bellRequested.connect(function() {
-            if (!pane._alive || pane.terminal !== t) return
+            if (!token.valid) return
             var root = pane._rootPane()
             if (!root.shouldHaveFocus || !pane.isFocused) {
                 pane.paneBadgeCount++
@@ -375,7 +425,7 @@ Item {
             }
         })
         t.activityDetected.connect(function() {
-            if (!pane._alive || pane.terminal !== t) return
+            if (!token.valid) return
             var root = pane._rootPane()
             if (!root.shouldHaveFocus || !pane.isFocused) {
                 if (pane.paneBadgeCount === 0) {
@@ -384,17 +434,15 @@ Item {
                 }
             }
         })
-        // Extract split direction from termProps before passing to split().
-        // Default to horizontal (side-by-side); folders and files override to vertical (stacked).
-        // Holding Option in the context menu switches to horizontal.
         t.openInSplitRequested.connect(function(termProps) {
-            if (!pane._alive || pane.terminal !== t) return
+            if (!token.valid) return
             var orientation = termProps.splitOrientation !== undefined ? termProps.splitOrientation : Qt.Horizontal
             delete termProps.splitOrientation
             pane.split(orientation, termProps)
         })
     }
 
+    // When a shell exits: close the pane (or the whole tab if it's the last one)
     function _handleSessionFinished(pane) {
         var root = _rootPane()
         if (pane === root && pane.isLeaf) {
@@ -427,7 +475,6 @@ Item {
         z: 101
         opacity: 0
         visible: border.width > 0
-
     }
     NumberAnimation {
         id: fadeOut
@@ -466,7 +513,7 @@ Item {
                 props.initialWorkDir = initialWorkDir
             var t = terminalComponent.createObject(splitPaneRoot, props)
             t.profileSettings = paneProfileSettings
-            _connectTerminalToPane(t, splitPaneRoot)
+            _rootPane()._connectTerminalToPane(t, splitPaneRoot)
             terminal = t
         }
     }

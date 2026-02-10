@@ -250,7 +250,8 @@ Item {
                 var root = currentRootSplitPane()
                 if (root && !root._syncingPaneProfile) {
                     var leaf = root.focusedLeaf()
-                    if (leaf && leaf.paneProfileSettings) {
+                    if (leaf && leaf._alive && leaf.paneProfileSettings
+                            && typeof leaf.paneProfileSettings.loadFromString === "function") {
                         leaf.paneProfileSettings.loadFromString(
                             terminalWindow.profileSettings.composeProfileString())
                         leaf.paneProfileSettings.currentProfileIndex =

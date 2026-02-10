@@ -96,6 +96,13 @@ QtObject {
         win.visible = true
     }
 
+    // Split the focused pane in the active window.
+    // Called from the macOS dock menu; orientation is Qt.Vertical or Qt.Horizontal.
+    function splitFocusedPane(orientation) {
+        if (!activeTerminalWindow) return
+        activeTerminalWindow.splitFocusedPane(orientation)
+    }
+
     function closeWindow(window) {
         var idx = windows.indexOf(window)
         if (idx === -1) return
