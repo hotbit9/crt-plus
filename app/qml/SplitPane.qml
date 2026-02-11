@@ -218,8 +218,10 @@ Item {
         newProfile.loadFromString(existingProfile.composeProfileString())
         newProfile.currentProfileIndex = existingProfile.currentProfileIndex
         c2.paneProfileSettings = newProfile
-        var newTerminal = terminalComponent.createObject(c2, newTermProps || {})
-        newTerminal.profileSettings = newProfile
+        // Pass profileSettings as initial property (see comment in onCompleted below)
+        var termProps = newTermProps || {}
+        termProps.profileSettings = newProfile
+        var newTerminal = terminalComponent.createObject(c2, termProps)
         c2.terminal = newTerminal
         _rootPane()._connectTerminalToPane(newTerminal, c2)
 
@@ -508,11 +510,14 @@ Item {
     Component.onCompleted: {
         if (isLeaf && !terminal && !_skipAutoCreate) {
             paneProfileSettings = _createPaneProfile()
-            var props = {}
+            // Pass profileSettings as initial property so it's set BEFORE
+            // Component.onCompleted — the font handler connect() in
+            // PreprocessedTerminal must bind to the pane's FontManager,
+            // not the window-level one.
+            var props = {profileSettings: paneProfileSettings}
             if (initialWorkDir !== "")
                 props.initialWorkDir = initialWorkDir
             var t = terminalComponent.createObject(splitPaneRoot, props)
-            t.profileSettings = paneProfileSettings
             _rootPane()._connectTerminalToPane(t, splitPaneRoot)
             terminal = t
         }

@@ -111,16 +111,32 @@ Item{
             terminalContainer.updateSources()
         }
     }
+    // Track effective terminal pixel dimensions to avoid redundant full repaints.
+    // Tab title changes can trigger ColumnLayout passes that fire
+    // onWidthChanged/onHeightChanged even when the terminal area is unchanged.
+    property int _lastEffectiveWidth: 0
+    property int _lastEffectiveHeight: 0
+
     Connections {
         target: terminalContainer
 
         onWidthChanged: {
-            terminalContainer.updateSources()
+            terminalContainer._updateSourcesIfDimensionsChanged()
         }
 
         onHeightChanged: {
-            terminalContainer.updateSources()
+            terminalContainer._updateSourcesIfDimensionsChanged()
         }
+    }
+
+    function _updateSourcesIfDimensionsChanged() {
+        var ew = Math.floor(width)
+        var eh = Math.floor(height)
+        if (ew === _lastEffectiveWidth && eh === _lastEffectiveHeight)
+            return
+        _lastEffectiveWidth = ew
+        _lastEffectiveHeight = eh
+        kterminal.update()
     }
 
     function updateSources() {
@@ -177,8 +193,35 @@ Item{
             }
         }
 
+        // Track last applied font parameters to skip redundant recalculations.
+        // Profile sync on tab switch re-fires terminalFontChanged even when
+        // nothing changed, which would trigger setVTFont → SIGWINCH, causing
+        // full-screen apps (Claude CLI, vim, htop) to visibly redraw.
+        property string _lastFontFamily: ""
+        property int _lastPixelSize: 0
+        property int _lastLineSpacing: -1
+        property real _lastScreenScaling: -1
+        property real _lastFontWidth: -1
+        property bool _lastLowRes: false
+
         function handleFontChanged(fontFamily, pixelSize, lineSpacing, screenScaling, fontWidth, fallbackFontFamily, lowResolutionFont) {
             if (!kterminal) return
+
+            if (fontFamily === _lastFontFamily
+                && pixelSize === _lastPixelSize
+                && lineSpacing === _lastLineSpacing
+                && screenScaling === _lastScreenScaling
+                && fontWidth === _lastFontWidth
+                && lowResolutionFont === _lastLowRes) {
+                return
+            }
+            _lastFontFamily = fontFamily
+            _lastPixelSize = pixelSize
+            _lastLineSpacing = lineSpacing
+            _lastScreenScaling = screenScaling
+            _lastFontWidth = fontWidth
+            _lastLowRes = lowResolutionFont
+
             kterminal.lineSpacing = lineSpacing;
             kterminal.antialiasText = !lowResolutionFont;
             kterminal.smooth = !lowResolutionFont;

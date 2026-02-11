@@ -366,7 +366,8 @@ Item {
         Rectangle {
             id: tabRow
             Layout.fillWidth: true
-            height: rowLayout.implicitHeight
+            Layout.preferredHeight: rowLayout.implicitHeight
+            clip: true
             color: palette.window
             visible: tabsModel.count > 1
 
