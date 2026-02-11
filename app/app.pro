@@ -25,6 +25,25 @@ macx {
     # Accept folder drops on dock icon (opens new window in that directory)
     PLIST = $$DESTDIR/crt-plus.app/Contents/Info.plist
     QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Delete :CFBundleDocumentTypes\" \"$$PLIST\" 2>/dev/null ; /usr/libexec/PlistBuddy -c \"Add :CFBundleDocumentTypes array\" \"$$PLIST\" && /usr/libexec/PlistBuddy -c \"Add :CFBundleDocumentTypes:0 dict\" \"$$PLIST\" && /usr/libexec/PlistBuddy -c \"Add :CFBundleDocumentTypes:0:CFBundleTypeRole string Viewer\" \"$$PLIST\" && /usr/libexec/PlistBuddy -c \"Add :CFBundleDocumentTypes:0:LSItemContentTypes array\" \"$$PLIST\" && /usr/libexec/PlistBuddy -c \"Add :CFBundleDocumentTypes:0:LSItemContentTypes:0 string public.folder\" \"$$PLIST\" ;
+    # Register as Finder Services provider (right-click folder menu)
+    QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Delete :NSServices\" \"$$PLIST\" 2>/dev/null ; \
+        /usr/libexec/PlistBuddy -c \"Add :NSServices array\" \"$$PLIST\" && \
+        /usr/libexec/PlistBuddy -c \"Add :NSServices:0 dict\" \"$$PLIST\" && \
+        /usr/libexec/PlistBuddy -c \"Add :NSServices:0:NSMessage string openFolderInTerminal\" \"$$PLIST\" && \
+        /usr/libexec/PlistBuddy -c \"Add :NSServices:0:NSPortName string crt-plus\" \"$$PLIST\" && \
+        /usr/libexec/PlistBuddy -c \"Add :NSServices:0:NSMenuItem dict\" \"$$PLIST\" && \
+        /usr/libexec/PlistBuddy -c \"Add :NSServices:0:NSMenuItem:default string 'New CRT Plus at Folder'\" \"$$PLIST\" && \
+        /usr/libexec/PlistBuddy -c \"Add :NSServices:0:NSSendFileTypes array\" \"$$PLIST\" && \
+        /usr/libexec/PlistBuddy -c \"Add :NSServices:0:NSSendFileTypes:0 string public.folder\" \"$$PLIST\" && \
+        /usr/libexec/PlistBuddy -c \"Add :NSServices:0:NSRequiredContext dict\" \"$$PLIST\" && \
+        /usr/libexec/PlistBuddy -c \"Add :NSServices:1 dict\" \"$$PLIST\" && \
+        /usr/libexec/PlistBuddy -c \"Add :NSServices:1:NSMessage string openFolderInTab\" \"$$PLIST\" && \
+        /usr/libexec/PlistBuddy -c \"Add :NSServices:1:NSPortName string crt-plus\" \"$$PLIST\" && \
+        /usr/libexec/PlistBuddy -c \"Add :NSServices:1:NSMenuItem dict\" \"$$PLIST\" && \
+        /usr/libexec/PlistBuddy -c \"Add :NSServices:1:NSMenuItem:default string 'New CRT Plus Tab at Folder'\" \"$$PLIST\" && \
+        /usr/libexec/PlistBuddy -c \"Add :NSServices:1:NSSendFileTypes array\" \"$$PLIST\" && \
+        /usr/libexec/PlistBuddy -c \"Add :NSServices:1:NSSendFileTypes:0 string public.folder\" \"$$PLIST\" && \
+        /usr/libexec/PlistBuddy -c \"Add :NSServices:1:NSRequiredContext dict\" \"$$PLIST\" ;
 }
 
 macx:ICON = icons/crt-plus.icns

@@ -68,7 +68,26 @@ Get notified when background tabs, panes, or windows need attention:
 - **Into terminal window**: Drag a file or folder and its path is inserted at the cursor — ready for `cd`, `cat`, or any command
 - **Onto dock icon** (macOS): Drag a folder onto the dock icon to open a new terminal window in that directory
 
-### macOS Improvements
+### Finder Services (macOS)
+Right-click any folder in Finder → Services to open it in CRT Plus:
+- **New CRT Plus at Folder** — Opens a new window at that directory
+- **New CRT Plus Tab at Folder** — Opens a new tab in the active window (or a new window if CRT Plus isn't running)
+
+### macOS vs Linux
+
+| Feature | macOS | Linux |
+|---------|-------|-------|
+| Dock badge notifications | Dock icon badge count | Tab/window dot indicators only |
+| Dock menu | New Window, New Pane, Profiles submenu | N/A |
+| Drag folder onto dock icon | Opens new window at folder | N/A |
+| Finder/file manager integration | Right-click → Services menu | N/A |
+| Clickable paths modifier key | Cmd+click | Ctrl+click |
+| Split Right | Cmd+D | Ctrl+Shift+D |
+| Split Down | Cmd+Shift+D | Ctrl+Shift+E |
+| Navigate panes | Cmd+] / Cmd+[ | Ctrl+Shift+] / Ctrl+Shift+[ |
+| Settings shortcut | Cmd+, | Via context menu |
+
+### Other macOS Improvements
 - Multi-window support with a single dock icon
 - **New Window** and **New Window with Profile** from dock menu (right-click) and File menu
 - Cmd+, opens Settings

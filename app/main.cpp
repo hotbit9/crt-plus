@@ -234,6 +234,9 @@ int main(int argc, char *argv[])
 
         // Handle folder drag-and-drop onto the dock icon
         app.installEventFilter(new FileOpenHandler(rootObject, &app));
+
+        // Register as a Finder Services provider ("New CRT Plus Window Here")
+        registerServiceProvider(rootObject);
     }
 #endif
 

@@ -41,6 +41,14 @@ ApplicationWindow {
     readonly property int tabCount: terminalTabs.count
     readonly property string customWindowTitle: terminalTabs.customWindowTitle
 
+    function addTabWithWorkDir(workDir) {
+        terminalTabs.addTabWithWorkDir(workDir)
+    }
+
+    function replaceFirstTab(workDir) {
+        terminalTabs.replaceFirstTab(workDir)
+    }
+
     function splitFocusedPane(orientation) {
         _splitGuarded(orientation)
     }

@@ -26,6 +26,17 @@ QtObject {
 
     property var windows: []
     property var activeTerminalWindow: null
+    property real _launchTime: Date.now()
+
+    // On cold launch, replace the default tab with one at the requested folder.
+    function _replaceFreshWindow(workDir) {
+        var justLaunched = (Date.now() - _launchTime) < 5000
+        if (justLaunched && windows.length === 1 && windows[0].tabCount === 1) {
+            windows[0].replaceFirstTab(workDir)
+            return true
+        }
+        return false
+    }
 
     property ApplicationSettings appSettings: ApplicationSettings {
         onInitializedSettings: {
@@ -111,6 +122,28 @@ QtObject {
     function resetActiveWindowTitle() {
         if (!activeTerminalWindow) return
         activeTerminalWindow.resetWindowTitle()
+    }
+
+    // Called from Finder Services: "New CRT Plus at Folder"
+    function createWindowAtFolder(workDir) {
+        if (!_replaceFreshWindow(workDir))
+            createWindow("", workDir)
+    }
+
+    // Called from Finder Services: "New CRT Plus Tab at Folder"
+    function createTabInActiveWindow(workDir) {
+        if (_replaceFreshWindow(workDir))
+            return
+
+        var target = activeTerminalWindow
+        if (!target && windows.length > 0)
+            target = windows[windows.length - 1]
+
+        if (target) {
+            target.addTabWithWorkDir(workDir)
+        } else {
+            createWindow("", workDir)
+        }
     }
 
     function activeWindowHasTabs() {

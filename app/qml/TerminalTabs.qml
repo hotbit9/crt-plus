@@ -136,6 +136,11 @@ Item {
         return _remoteProcesses.indexOf(name) !== -1
     }
 
+    function addTabWithWorkDir(workDir) {
+        _initialWorkDir = workDir || ""
+        addTab()
+    }
+
     function addTab() {
         var profile
         if (defaultProfileString !== "") {
@@ -158,6 +163,14 @@ Item {
                            profileString: profile,
                            profileIndex: terminalWindow.profileSettings.currentProfileIndex })
         tabBar.currentIndex = tabsModel.count - 1
+    }
+
+    function replaceFirstTab(workDir) {
+        addTabWithWorkDir(workDir)
+        tabsModel.remove(0)
+        tabBar.currentIndex = 0
+        _previousIndex = 0
+        loadTabProfile(0)
     }
 
     function closeTab(index) {
