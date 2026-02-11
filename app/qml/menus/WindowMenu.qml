@@ -25,7 +25,7 @@ MenuBar {
     visible: appSettings.isMacOS || appSettings.showMenubar
 
     Menu {
-        title: qsTr("File")
+        title: qsTr("Shell")
         MenuItem { action: newWindowAction }
         Menu {
             title: qsTr("New Window with Profile")
@@ -50,6 +50,13 @@ MenuBar {
                 return entry ? entry.customTitle !== "" : false
             }
             onTriggered: terminalTabs.resetCustomTitle(terminalTabs.currentIndex)
+        }
+        MenuSeparator { }
+        MenuItem { action: renameWindowAction }
+        MenuItem {
+            text: qsTr("Reset Window Name")
+            enabled: terminalTabs.customWindowTitle !== ""
+            onTriggered: terminalTabs.resetWindowTitle()
         }
         MenuSeparator { }
         MenuItem { action: quitAction }

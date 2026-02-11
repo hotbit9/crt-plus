@@ -26,10 +26,11 @@ Item {
     id: tabsRoot
 
     readonly property int innerPadding: 6
+    property string customWindowTitle: ""
     // When multiple tabs are open, each tab label shows its own title,
     // so the window title stays static to avoid duplication.
     readonly property string currentTitle: {
-        if (tabsModel.count > 1) return "CRT Plus"
+        if (tabsModel.count > 1) return customWindowTitle || "CRT Plus"
         var entry = tabsModel.get(currentIndex)
         if (!entry) return "CRT Plus"
         return displayTitle(entry.customTitle, entry.title, entry.currentDir, entry.foregroundProcess, entry.foregroundProcessLabel)
@@ -305,6 +306,37 @@ Item {
         }
     }
 
+    function openRenameWindowDialog() {
+        renameWindowField.text = customWindowTitle || "CRT Plus"
+        renameWindowDialog.open()
+        renameWindowField.selectAll()
+        renameWindowField.forceActiveFocus()
+    }
+
+    function resetWindowTitle() {
+        customWindowTitle = ""
+    }
+
+    Dialog {
+        id: renameWindowDialog
+        title: qsTr("Rename Window")
+        anchors.centerIn: parent
+        modal: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        onAccepted: {
+            customWindowTitle = renameWindowField.text.trim()
+        }
+        RowLayout {
+            anchors.fill: parent
+            Label { text: qsTr("Name:") }
+            TextField {
+                id: renameWindowField
+                Layout.fillWidth: true
+                onAccepted: renameWindowDialog.accept()
+            }
+        }
+    }
+
     Component.onCompleted: {
         terminalWindow.profileSettings.currentProfileIndex = appSettings.currentProfileIndex
         _initialWorkDir = terminalWindow.initialWorkDir
@@ -396,14 +428,30 @@ Item {
                         property int tabIndex: -1
                         property bool hasCustomTitle: false
                         MenuItem {
+                            text: qsTr("Close Tab")
+                            onTriggered: tabsRoot.closeTab(tabContextMenu.tabIndex)
+                        }
+                        MenuSeparator { }
+                        MenuItem {
                             text: qsTr("Rename Tab…")
                             onTriggered: tabsRoot.openRenameDialog(tabContextMenu.tabIndex)
                         }
                         MenuItem {
-                            text: qsTr("Reset Name")
+                            text: qsTr("Reset Tab Name")
                             visible: tabContextMenu.hasCustomTitle
                             height: visible ? implicitHeight : 0
                             onTriggered: tabsRoot.resetCustomTitle(tabContextMenu.tabIndex)
+                        }
+                        MenuSeparator { }
+                        MenuItem {
+                            text: qsTr("Rename Window…")
+                            onTriggered: tabsRoot.openRenameWindowDialog()
+                        }
+                        MenuItem {
+                            text: qsTr("Reset Window Name")
+                            visible: tabsRoot.customWindowTitle !== ""
+                            height: visible ? implicitHeight : 0
+                            onTriggered: tabsRoot.resetWindowTitle()
                         }
                     }
                 }

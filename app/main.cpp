@@ -12,7 +12,6 @@
 #include <QDebug>
 #include <QDir>
 #include <QFileInfo>
-#include <QFileOpenEvent>
 #include <stdlib.h>
 
 #include <QLoggingCategory>
@@ -23,11 +22,11 @@
 
 #if defined(Q_OS_MAC)
 #include <CoreFoundation/CoreFoundation.h>
+#include <QFileOpenEvent>
 #include <QStyleFactory>
 #include <QMenu>
 #include <macutils.h>
 #include "badgehelper.h"
-#endif
 
 class FileOpenHandler : public QObject {
 public:
@@ -50,6 +49,7 @@ protected:
 private:
     QObject *m_rootObject;
 };
+#endif
 
 QString getNamedArgument(QStringList args, QString name, QString defaultName)
 {
@@ -192,6 +192,25 @@ int main(int argc, char *argv[])
         QAction *newPaneRightAction = dockMenu->addAction(QObject::tr("New Pane Right"), [rootObject]() {
             QMetaObject::invokeMethod(rootObject, "splitFocusedPane",
                                       Q_ARG(QVariant, (int)Qt::Horizontal));
+        });
+
+        dockMenu->addSeparator();
+        QAction *renameWindowAction = dockMenu->addAction(QObject::tr("Rename Window…"), [rootObject]() {
+            QMetaObject::invokeMethod(rootObject, "renameActiveWindow");
+        });
+        QAction *resetWindowNameAction = dockMenu->addAction(QObject::tr("Reset Window Name"), [rootObject]() {
+            QMetaObject::invokeMethod(rootObject, "resetActiveWindowTitle");
+        });
+
+        // Dynamically enable/disable based on active window state
+        QObject::connect(dockMenu, &QMenu::aboutToShow, [rootObject, renameWindowAction, resetWindowNameAction]() {
+            QVariant hasTabs, hasCustomTitle;
+            QMetaObject::invokeMethod(rootObject, "activeWindowHasTabs",
+                                      Q_RETURN_ARG(QVariant, hasTabs));
+            QMetaObject::invokeMethod(rootObject, "activeWindowHasCustomTitle",
+                                      Q_RETURN_ARG(QVariant, hasCustomTitle));
+            renameWindowAction->setEnabled(hasTabs.toBool());
+            resetWindowNameAction->setEnabled(hasCustomTitle.toBool());
         });
 
         QMenu *profilesMenu = dockMenu->addMenu(QObject::tr("New Window with Profile"));

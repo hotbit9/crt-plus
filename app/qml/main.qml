@@ -103,6 +103,26 @@ QtObject {
         activeTerminalWindow.splitFocusedPane(orientation)
     }
 
+    function renameActiveWindow() {
+        if (!activeTerminalWindow) return
+        activeTerminalWindow.renameWindow()
+    }
+
+    function resetActiveWindowTitle() {
+        if (!activeTerminalWindow) return
+        activeTerminalWindow.resetWindowTitle()
+    }
+
+    function activeWindowHasTabs() {
+        if (!activeTerminalWindow) return false
+        return activeTerminalWindow.tabCount > 1
+    }
+
+    function activeWindowHasCustomTitle() {
+        if (!activeTerminalWindow) return false
+        return activeTerminalWindow.customWindowTitle !== ""
+    }
+
     function closeWindow(window) {
         var idx = windows.indexOf(window)
         if (idx === -1) return

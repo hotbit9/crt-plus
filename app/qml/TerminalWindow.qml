@@ -38,9 +38,19 @@ ApplicationWindow {
     property string initialWorkDir: ""
     property alias profileSettings: profileSettings
     readonly property int badgeCount: terminalTabs.totalBadgeCount
+    readonly property int tabCount: terminalTabs.count
+    readonly property string customWindowTitle: terminalTabs.customWindowTitle
 
     function splitFocusedPane(orientation) {
         _splitGuarded(orientation)
+    }
+
+    function renameWindow() {
+        terminalTabs.openRenameWindowDialog()
+    }
+
+    function resetWindowTitle() {
+        terminalTabs.resetWindowTitle()
     }
 
     ProfileSettings {
@@ -198,6 +208,12 @@ ApplicationWindow {
         text: qsTr("Rename Tab…")
         shortcut: appSettings.isMacOS ? "Meta+R" : "Ctrl+Shift+R"
         onTriggered: terminalTabs.openRenameDialog(terminalTabs.currentIndex)
+    }
+    Action {
+        id: renameWindowAction
+        text: qsTr("Rename Window…")
+        enabled: terminalTabs.count > 1
+        onTriggered: terminalTabs.openRenameWindowDialog()
     }
     Action {
         id: splitHorizontalAction
