@@ -64,6 +64,14 @@ Get notified when background tabs, panes, or windows need attention:
 - Window title shows a **●** dot when any tab/pane has a badge
 - Badges clear automatically when you focus the relevant pane or tab
 
+### Drag-to-Reorder Tabs
+Rearrange tabs by dragging them, just like macOS Terminal:
+- **Drag** any tab to move it — neighboring tabs slide apart to show the drop position
+- A floating ghost tab follows your cursor during the drag
+- Terminal sessions, profiles, and running processes survive reordering
+- macOS Terminal-style tab bar with pill-shaped tabs, hover highlights, and separators
+- Automatic light/dark mode support
+
 ### Drag & Drop Support
 - **Into terminal window**: Drag a file or folder and its path is inserted at the cursor — ready for `cd`, `cat`, or any command
 - **Onto dock icon** (macOS): Drag a folder onto the dock icon to open a new terminal window in that directory

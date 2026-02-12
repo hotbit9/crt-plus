@@ -25,7 +25,6 @@ import QtQml.Models
 Item {
     id: tabsRoot
 
-    readonly property int innerPadding: 6
     property string customWindowTitle: ""
     // When multiple tabs are open, each tab label shows its own title,
     // so the window title stays static to avoid duplication.
@@ -58,6 +57,33 @@ Item {
     property bool _isLoadingTabProfile: false
     property string defaultProfileString: ""
     property string _initialWorkDir: ""
+
+    // Drag-to-reorder state.
+    // _dragActive stays true through tabsModel.move() so onCurrentIndexChanged
+    // skips profile save/load during reorder. _dragAnimating gates Behavior
+    // animations — disabled before the move so transforms snap to 0 instantly.
+    property bool _dragActive: false
+    property bool _dragAnimating: false
+    property int _dragSourceIndex: -1
+    property int _dragSlot: -1       // insertion slot (0..count), not final index
+    property real _dragGhostX: 0
+    property real _dragTabWidth: 0
+    property string _dragTabTitle: ""
+
+    // Dark mode: use ITU-R BT.601 luminance of the window background
+    readonly property bool _isDark: (palette.window.r * 0.299 + palette.window.g * 0.587 + palette.window.b * 0.114) < 0.5
+
+    // Tab bar theme (macOS Terminal style)
+    readonly property color _tabContainerColor: _isDark ? "#494C48" : "#E5E5E5"
+    readonly property color _tabActiveColor:    _isDark ? "#616460" : "#FFFFFF"
+    readonly property color _tabHoverColor:     _isDark ? "#525551" : "#DBDBDB"
+    readonly property color _tabTextColor:      _isDark ? "#E0E0E0" : "#333333"
+    readonly property color _tabCloseColor:     _isDark ? "#AAAAAA" : "#666666"
+    readonly property color _tabSeparatorColor: _isDark ? "#3A3C38" : "#D0D0D0"
+    readonly property color _addBtnColor:       _isDark ? "#1A1C19" : "#E5E5E5"
+    readonly property color _addBtnHoverColor:  _isDark ? "#2A2C28" : "#DBDBDB"
+    readonly property color _addBtnShadowColor: _isDark ? "#101210" : "#D5D5D5"
+    readonly property color _addBtnTextColor:   _isDark ? "#AAAAAA" : "#555555"
 
     property string _homeDir: typeof homeDir !== "undefined" ? homeDir : ""
 
@@ -134,6 +160,62 @@ Item {
     readonly property var _remoteProcesses: ["ssh", "mosh", "telnet", "rlogin"]
     function isRemoteProcess(name) {
         return _remoteProcesses.indexOf(name) !== -1
+    }
+
+    // Capture source tab state and enter drag mode.
+    function _startDrag(sourceIndex) {
+        _dragSourceIndex = sourceIndex
+        _dragSlot = sourceIndex
+        var item = tabButtonRepeater.itemAt(sourceIndex)
+        _dragTabWidth = item ? item.width : 100
+        var entry = tabsModel.get(sourceIndex)
+        _dragTabTitle = (entry.badgeCount > 0 ? "\u25CF " : "")
+            + displayTitle(entry.customTitle, entry.title, entry.currentDir,
+                           entry.foregroundProcess, entry.foregroundProcessLabel)
+        tabBar.currentIndex = sourceIndex
+        _dragAnimating = true
+        _dragActive = true
+    }
+
+    // Position ghost and find insertion slot by comparing mouse X to tab midpoints.
+    function _updateDrag(tabBarX) {
+        var ghostPos = tabBar.mapToItem(tabRow, tabBarX - _dragTabWidth / 2, 0)
+        _dragGhostX = Math.max(0, Math.min(ghostPos.x, tabRow.width - _dragTabWidth))
+
+        var slot = tabsModel.count
+        for (var i = 0; i < tabsModel.count; i++) {
+            var item = tabButtonRepeater.itemAt(i)
+            if (!item) continue
+            if (tabBarX < item.x + item.width / 2) {
+                slot = i
+                break
+            }
+        }
+        _dragSlot = slot
+    }
+
+    // Commit the reorder. Slot is an insertion point (0..count), so dropping
+    // at slot == source or source+1 is a no-op (same position). For forward
+    // moves (slot > source), subtract 1 because removing the source shifts
+    // subsequent indices left.
+    function _endDrag() {
+        var from = _dragSourceIndex
+        var slot = _dragSlot
+
+        _dragAnimating = false
+        _dragSourceIndex = -1
+        _dragSlot = -1
+
+        if (slot === from || slot === from + 1) {
+            _dragActive = false
+            return
+        }
+
+        var to = (slot > from) ? slot - 1 : slot
+        tabsModel.move(from, to, 1)
+        tabBar.currentIndex = to
+        _previousIndex = to
+        _dragActive = false
     }
 
     function addTabWithWorkDir(workDir) {
@@ -363,27 +445,48 @@ Item {
         anchors.fill: parent
         spacing: 0
 
-        Rectangle {
+        // Tab bar area (macOS Terminal style).
+        // Structure: tabRow > rowLayout > [tabContainer > TabBar, addTabButton]
+        // The tabContainer is a pill-shaped rounded Rectangle; clip: true
+        // gives the tab strip rounded ends. Ghost tab is a sibling of
+        // rowLayout so it floats above everything (z: 100).
+        Item {
             id: tabRow
             Layout.fillWidth: true
-            Layout.preferredHeight: rowLayout.implicitHeight
-            clip: true
-            color: palette.window
+            Layout.preferredHeight: rowLayout.implicitHeight + 10
             visible: tabsModel.count > 1
 
             RowLayout {
                 id: rowLayout
                 anchors.fill: parent
-                spacing: 0
+                anchors.topMargin: 5
+                anchors.bottomMargin: 5
+                anchors.leftMargin: 8
+                anchors.rightMargin: 8
+                spacing: 6
 
-                TabBar {
-                    id: tabBar
+                Rectangle {
+                    id: tabContainer
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    focusPolicy: Qt.NoFocus
+                    implicitHeight: tabBar.implicitHeight
+                    radius: height / 2
+                    color: tabsRoot._tabContainerColor
+                    clip: true
+
+                    TabBar {
+                        id: tabBar
+                        anchors.fill: parent
+                        focusPolicy: Qt.NoFocus
+                        clip: true
+                        spacing: 0
+                        background: Item {}
 
                     onCurrentIndexChanged: {
                         if (!tabsRoot._initialized) return
+                        // Skip profile save/load during drag reorder —
+                        // tabsModel.move() triggers intermediate index changes.
+                        if (tabsRoot._dragActive) return
 
                         // Save outgoing tab's profile
                         if (tabsRoot._previousIndex >= 0
@@ -401,37 +504,156 @@ Item {
                     }
 
                     Repeater {
+                        id: tabButtonRepeater
                         model: tabsModel
                         TabButton {
                             id: tabButton
+                            // Source tab is invisible during drag; neighbors see it shift away
+                            opacity: (tabsRoot._dragActive && tabsRoot._dragSourceIndex === index) ? 0.0 : 1.0
+                            Behavior on opacity {
+                                enabled: tabsRoot._dragAnimating
+                                NumberAnimation { duration: 150 }
+                            }
+                            // Shift neighbors to open a gap at the drop slot.
+                            // Dragging left: tabs in [slot, source) shift RIGHT to make room.
+                            // Dragging right: tabs in (source, slot) shift LEFT to fill the gap.
+                            transform: Translate {
+                                x: {
+                                    if (!tabsRoot._dragActive) return 0
+                                    var src = tabsRoot._dragSourceIndex
+                                    var slot = tabsRoot._dragSlot
+                                    if (index === src) return 0
+                                    if (slot < src && index >= slot && index < src)
+                                        return tabsRoot._dragTabWidth
+                                    if (slot > src + 1 && index > src && index < slot)
+                                        return -tabsRoot._dragTabWidth
+                                    return 0
+                                }
+                                Behavior on x {
+                                    enabled: tabsRoot._dragAnimating
+                                    NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                                }
+                            }
+                            topPadding: 6
+                            bottomPadding: 6
+                            leftPadding: 12
+                            rightPadding: 4
+                            // Pill background inset via margins so it never
+                            // touches the tabContainer's clip boundary.
+                            background: Item {
+                                Rectangle {
+                                    anchors.fill: parent
+                                    anchors.topMargin: 3
+                                    anchors.bottomMargin: 3
+                                    anchors.leftMargin: 2
+                                    anchors.rightMargin: 2
+                                    radius: height / 2
+                                    color: tabButton.checked ? tabsRoot._tabActiveColor
+                                         : tabDragArea.containsMouse && !tabsRoot._dragActive
+                                           ? tabsRoot._tabHoverColor : "transparent"
+                                }
+                            }
                             contentItem: RowLayout {
-                                anchors.fill: parent
-                                anchors { leftMargin: innerPadding; rightMargin: innerPadding }
-                                spacing: innerPadding
+                                spacing: 4
 
                                 Label {
                                     text: (model.badgeCount > 0 ? "\u25CF " : "") + tabsRoot.displayTitle(model.customTitle, model.title, model.currentDir, model.foregroundProcess, model.foregroundProcessLabel)
                                     elide: Text.ElideRight
+                                    horizontalAlignment: Text.AlignHCenter
                                     Layout.fillWidth: true
                                     Layout.alignment: Qt.AlignVCenter
+                                    color: tabsRoot._tabTextColor
                                 }
 
                                 ToolButton {
-                                    text: "\u00d7"
+                                    id: closeBtn
                                     focusPolicy: Qt.NoFocus
-                                    padding: innerPadding
+                                    implicitWidth: 20
+                                    implicitHeight: 20
+                                    padding: 0
+                                    background: Item {}
                                     Layout.alignment: Qt.AlignVCenter
-                                    onClicked: tabsRoot.closeTab(index)
+                                    contentItem: Label {
+                                        text: "\u00d7"
+                                        color: tabsRoot._tabCloseColor
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
                                 }
                             }
 
+                            // Separator between inactive tabs
+                            Rectangle {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 1
+                                height: parent.height * 0.5
+                                color: tabsRoot._tabSeparatorColor
+                                visible: !tabButton.checked
+                                         && index < tabsModel.count - 1
+                                         && (index + 1) !== tabBar.currentIndex
+                                         && !tabsRoot._dragActive
+                            }
+
+                            // Unified mouse handler: left-drag reorders tabs,
+                            // left-click switches or closes, right-click opens context menu.
                             MouseArea {
+                                id: tabDragArea
                                 anchors.fill: parent
-                                acceptedButtons: Qt.RightButton
-                                onClicked: {
-                                    tabContextMenu.tabIndex = index
-                                    tabContextMenu.hasCustomTitle = (model.customTitle !== "")
-                                    tabContextMenu.popup()
+                                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                hoverEnabled: true
+                                cursorShape: tabsRoot._dragActive && tabsRoot._dragSourceIndex === index
+                                             ? Qt.ClosedHandCursor : Qt.ArrowCursor
+
+                                property point _pressPos: Qt.point(0, 0)
+                                property bool _dragging: false
+
+                                function _isOverCloseBtn(localX, localY) {
+                                    var cp = closeBtn.mapFromItem(tabDragArea, localX, localY)
+                                    return cp.x >= 0 && cp.x <= closeBtn.width
+                                        && cp.y >= 0 && cp.y <= closeBtn.height
+                                }
+
+                                onPressed: function(mouse) {
+                                    if (mouse.button === Qt.RightButton) return
+                                    _pressPos = Qt.point(mouse.x, mouse.y)
+                                    _dragging = false
+                                }
+
+                                onPositionChanged: function(mouse) {
+                                    if (!(mouse.buttons & Qt.LeftButton)) return
+                                    if (!_dragging) {
+                                        if (Math.abs(mouse.x - _pressPos.x) > 10) {
+                                            if (_isOverCloseBtn(_pressPos.x, _pressPos.y))
+                                                return
+                                            _dragging = true
+                                            tabsRoot._startDrag(index)
+                                        }
+                                    }
+                                    if (_dragging) {
+                                        var tbPos = tabDragArea.mapToItem(tabBar, mouse.x, 0)
+                                        tabsRoot._updateDrag(tbPos.x)
+                                    }
+                                }
+
+                                onReleased: function(mouse) {
+                                    if (mouse.button === Qt.RightButton) return
+                                    if (_dragging) {
+                                        tabsRoot._endDrag()
+                                        _dragging = false
+                                    } else if (_isOverCloseBtn(mouse.x, mouse.y)) {
+                                        tabsRoot.closeTab(index)
+                                    } else {
+                                        tabBar.currentIndex = index
+                                    }
+                                }
+
+                                onClicked: function(mouse) {
+                                    if (mouse.button === Qt.RightButton) {
+                                        tabContextMenu.tabIndex = index
+                                        tabContextMenu.hasCustomTitle = (model.customTitle !== "")
+                                        tabContextMenu.popup()
+                                    }
                                 }
                             }
                         }
@@ -468,16 +690,66 @@ Item {
                             onTriggered: tabsRoot.resetWindowTitle()
                         }
                     }
+                    }
                 }
 
+                // Add-tab button. Shadow is faked with two stacked Rectangles:
+                // a darker one offset 1px down behind the main circle.
                 ToolButton {
                     id: addTabButton
                     text: "+"
                     focusPolicy: Qt.NoFocus
-                    Layout.fillHeight: true
-                    padding: innerPadding
+                    implicitWidth: 28
+                    implicitHeight: 28
+                    padding: 0
                     Layout.alignment: Qt.AlignVCenter
                     onClicked: tabsRoot.addTab()
+                    background: Item {
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.topMargin: 1
+                            radius: height / 2
+                            color: tabsRoot._addBtnShadowColor
+                        }
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.bottomMargin: 1
+                            radius: height / 2
+                            color: addTabButton.hovered ? tabsRoot._addBtnHoverColor : tabsRoot._addBtnColor
+                        }
+                    }
+                    contentItem: Label {
+                        text: "+"
+                        color: tabsRoot._addBtnTextColor
+                        font.pixelSize: 18
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        topPadding: -1
+                    }
+                }
+            }
+
+            // Ghost tab (floating pill)
+            Rectangle {
+                visible: tabsRoot._dragActive
+                x: tabsRoot._dragGhostX
+                y: 5
+                width: tabsRoot._dragTabWidth
+                height: parent.height - 10
+                color: tabsRoot._tabActiveColor
+                border.color: tabsRoot._isDark ? "#505350" : "#CCCCCC"
+                border.width: 1
+                radius: height / 2
+                opacity: 0.85
+                z: 100
+
+                Label {
+                    anchors.centerIn: parent
+                    text: tabsRoot._dragTabTitle
+                    elide: Text.ElideRight
+                    width: parent.width - 16
+                    horizontalAlignment: Text.AlignHCenter
+                    color: tabsRoot._tabTextColor
                 }
             }
         }
