@@ -121,7 +121,7 @@ ColumnLayout {
             }
             RowLayout {
                 Layout.fillWidth: true
-                Slider {
+                StyledSlider {
                     Layout.fillWidth: true
                     id: fontScalingChanger
                     onValueChanged: appSettings.fontScaling = value
@@ -139,7 +139,7 @@ ColumnLayout {
             }
             RowLayout {
                 Layout.fillWidth: true
-                Slider {
+                StyledSlider {
                     Layout.fillWidth: true
                     id: widthChanger
                     onValueChanged: appSettings.fontWidth = value
@@ -157,7 +157,7 @@ ColumnLayout {
             }
             RowLayout {
                 Layout.fillWidth: true
-                Slider {
+                StyledSlider {
                     Layout.fillWidth: true
                     id: lineSpacingChanger
                     onValueChanged: appSettings.lineSpacing = value

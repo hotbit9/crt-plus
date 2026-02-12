@@ -42,7 +42,7 @@ RowLayout {
             slider.value = value
     }
 
-    CheckBox {
+    StyledCheckBox {
         id: check
         implicitWidth: 160
         onClicked: {
@@ -57,7 +57,7 @@ RowLayout {
             }
         }
     }
-    Slider {
+    StyledSlider {
         id: slider
         stepSize: parent.stepSize
         Layout.fillWidth: true

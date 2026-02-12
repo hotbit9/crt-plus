@@ -23,12 +23,12 @@ import QtQuick.Controls 2.0
 import QtQuick.Layouts 1.1
 import QtQuick.Dialogs
 
-Window {
+ApplicationWindow {
     id: insertnamedialog
     width: 400
     height: 100
     modality: Qt.ApplicationModal
-    title: qsTr("Save new profile")
+    title: qsTr("Save as new profile")
 
     property alias profileName: namefield.text
     signal nameSelected(string name)
@@ -45,7 +45,6 @@ Window {
     }
 
     function validateName(name) {
-        var profile_list = appSettings.profilesList
         if (name === "")
             return 1
         return 0

@@ -32,7 +32,7 @@ RowLayout {
 
     id: setting_component
     spacing: 10
-    Slider {
+    StyledSlider {
         id: slider
         stepSize: parent.stepSize
         Layout.fillWidth: true

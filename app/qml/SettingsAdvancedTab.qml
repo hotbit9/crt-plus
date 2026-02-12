@@ -20,7 +20,7 @@
 import QtQuick 2.2
 import QtQuick.Controls 2.0
 import QtQuick.Layouts 1.1
-import QtQml 2.0
+
 
 import "Components"
 
@@ -33,7 +33,7 @@ ColumnLayout {
 
         ColumnLayout {
             anchors.fill: parent
-            CheckBox {
+            StyledCheckBox {
                 id: useCustomCommand
                 text: qsTr("Use custom command instead of shell at startup")
                 checked: appSettings.useCustomCommand
@@ -53,13 +53,13 @@ ColumnLayout {
                 Component.onCompleted: settings_window.closing.connect(
                                            saveSetting)
             }
-            CheckBox {
+            StyledCheckBox {
                 id: blinkingCursor
                 text: qsTr("Blinking Cursor")
                 checked: appSettings.blinkingCursor
                 onCheckedChanged: appSettings.blinkingCursor = checked
             }
-            CheckBox {
+            StyledCheckBox {
                 id: showMenubar
                 text: qsTr("Show Menubar")
                 enabled: !appSettings.isMacOS
@@ -114,7 +114,7 @@ ColumnLayout {
             Label {
                 text: qsTr("Effects FPS")
             }
-            Slider {
+            StyledSlider {
                 Layout.fillWidth: true
                 Layout.columnSpan: 2
                 id: effectsFpsSlider
@@ -132,7 +132,7 @@ ColumnLayout {
             Label {
                 text: qsTr("Texture Quality")
             }
-            Slider {
+            StyledSlider {
                 id: txtslider
                 Layout.fillWidth: true
                 Layout.columnSpan: 2
@@ -149,7 +149,7 @@ ColumnLayout {
             Label {
                 text: qsTr("Bloom Quality")
             }
-            Slider {
+            StyledSlider {
                 Layout.fillWidth: true
                 Layout.columnSpan: 2
                 id: bloomSlider
@@ -166,7 +166,7 @@ ColumnLayout {
             Label {
                 text: qsTr("BurnIn Quality")
             }
-            Slider {
+            StyledSlider {
                 Layout.fillWidth: true
                 id: burnInSlider
                 Layout.columnSpan: 2

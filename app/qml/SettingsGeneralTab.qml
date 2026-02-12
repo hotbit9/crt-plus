@@ -85,11 +85,10 @@ ColumnLayout {
                 Layout.fillWidth: false
                 Button {
                     Layout.fillWidth: true
-                    text: qsTr("Save")
+                    text: qsTr("Duplicate")
                     onClicked: {
                         insertname.profileName = ""
                         insertname.show()
-                        feedbackLabel.text = qsTr("✓ Saved"); feedbackTimer.restart()
                     }
                 }
                 Button {
@@ -232,7 +231,7 @@ ColumnLayout {
                             var urlTail = (extension === ".json" ? "" : ".json")
                             url += urlTail
 
-                            if (true)
+                            if (appSettings.verbose)
                                 console.log("Storing file: " + url)
 
                             var profileObject = appSettings.profilesList.get(

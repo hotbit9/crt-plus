@@ -798,6 +798,40 @@ QtObject {
             builtin: true
         }
         ListElement {
+            text: "256 Color VGA"
+            obj_string: '{
+                "ambientLight": 0,
+                "backgroundColor": "#000000",
+                "bloom": 0.15,
+                "brightness": 0.55,
+                "burnIn": 0.1,
+                "chromaColor": 1,
+                "contrast": 0.85,
+                "flickering": 0,
+                "fontColor": "#c0c0c0",
+                "fontName": "IBM_VGA_8x16",
+                "fontSource": 0,
+                "fontWidth": 1,
+                "lineSpacing": 0.1,
+                "glowingLine": 0,
+                "horizontalSync": 0,
+                "jitter": 0,
+                "rasterization": 1,
+                "rgbShift": 0,
+                "saturationColor": 0.5,
+                "screenCurvature": 0.042,
+                "screenRadius": 0.1,
+                "staticNoise": 0,
+                "windowOpacity": 1,
+                "margin": 0.2017,
+                "blinkingCursor": true,
+                "frameSize": 0.5776,
+                "frameColor": "#ffffff",
+                "frameShininess": 0.2
+            }'
+            builtin: true
+        }
+        ListElement {
             text: "IBM 3278 Reborn"
             obj_string: '{
                 "ambientLight": 0.2,
