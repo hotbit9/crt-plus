@@ -127,7 +127,7 @@ ApplicationWindow {
             "screenCurvature", "glowingLine", "burnIn", "bloom", "jitter",
             "rgbShift", "brightness", "contrast", "highImpedance", "ambientLight",
             "windowOpacity", "_margin", "_frameSize", "_screenRadius",
-            "_frameShininess", "blinkingCursor", "rasterization", "fontSource",
+            "_frameShininess", "solidFrameColor", "blinkingCursor", "rasterization", "fontSource",
             "fontName", "fontWidth", "lineSpacing", "currentProfileIndex"
         ]
         for (var i = 0; i < props.length; i++) {

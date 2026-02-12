@@ -52,6 +52,7 @@ QtObject {
     property real _frameSize: 0.2
     property real _screenRadius: 0.2
     property real _frameShininess: 0.2
+    property bool solidFrameColor: false  // Use frame color directly instead of mixing with font/background
     property bool blinkingCursor: false
     property int currentProfileIndex: -1
 
@@ -123,7 +124,8 @@ QtObject {
             "frameSize": _frameSize,
             "screenRadius": _screenRadius,
             "frameColor": _frameColor,
-            "frameShininess": _frameShininess
+            "frameShininess": _frameShininess,
+            "solidFrameColor": solidFrameColor
         }
         return profile
     }
@@ -164,6 +166,7 @@ QtObject {
         _screenRadius = s.screenRadius !== undefined ? s.screenRadius : _screenRadius
         _frameColor = s.frameColor !== undefined ? s.frameColor : _frameColor
         _frameShininess = s.frameShininess !== undefined ? s.frameShininess : _frameShininess
+        solidFrameColor = s.solidFrameColor !== undefined ? s.solidFrameColor : false
         blinkingCursor = s.blinkingCursor !== undefined ? s.blinkingCursor : blinkingCursor
 
         profileChanged()
@@ -195,6 +198,7 @@ QtObject {
         _frameSize = appSettings._frameSize
         _screenRadius = appSettings._screenRadius
         _frameShininess = appSettings._frameShininess
+        solidFrameColor = appSettings.solidFrameColor
         blinkingCursor = appSettings.blinkingCursor
         fontSource = appSettings.fontSource
         fontName = appSettings.fontName
@@ -233,6 +237,7 @@ QtObject {
         appSettings._frameSize = _frameSize
         appSettings._screenRadius = _screenRadius
         appSettings._frameShininess = _frameShininess
+        appSettings.solidFrameColor = solidFrameColor
         appSettings.blinkingCursor = blinkingCursor
         appSettings.fontSource = fontSource
         appSettings.fontName = fontName

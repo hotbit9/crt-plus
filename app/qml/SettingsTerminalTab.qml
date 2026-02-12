@@ -20,7 +20,7 @@
 import QtQuick 2.2
 import QtQuick.Controls 2.1
 import QtQuick.Layouts 1.1
-import QtQml 2.0
+
 
 import "Components"
 

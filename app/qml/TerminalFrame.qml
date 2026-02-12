@@ -29,11 +29,14 @@ ShaderEffect {
     property color _fontColor: profileSettings.fontColor
     property color _lightColor: Utils.mix(_fontColor, _backgroundColor, 0.2)
 
-    property color frameColor: Utils.mix(
-        Utils.scaleColor(_lightColor, 0.2),
-        _staticFrameColor,
-        0.125 + 0.750 * ambientLight
-    )
+    // Solid mode uses the frame color directly; classic mode mixes with font/background
+    property color frameColor: profileSettings.solidFrameColor
+        ? profileSettings.frameColor
+        : Utils.mix(
+            Utils.scaleColor(_lightColor, 0.2),
+            _staticFrameColor,
+            0.125 + 0.750 * ambientLight
+        )
 
     property real screenCurvature: profileSettings.screenCurvature * appSettings.screenCurvatureSize * terminalWindow.normalizedWindowScale
 

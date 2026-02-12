@@ -18,6 +18,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *******************************************************************************/
 import QtQuick 2.2
+import QtQuick.Layouts 1.1
 import QtQuick.Dialogs
 
 Item {
@@ -39,26 +40,54 @@ Item {
         }
         onAccepted: colorSelected(selectedColor)
     }
+
     Rectangle {
         anchors.fill: parent
-        radius: 10
-        color: rootItem.color
+        radius: 8
+        color: palette.button
+        border.color: mouseArea.containsMouse ? palette.highlight : Qt.rgba(palette.text.r, palette.text.g, palette.text.b, 0.2)
+        border.width: mouseArea.containsMouse ? 2 : 1
 
-        Rectangle {
+        RowLayout {
             anchors.fill: parent
-            anchors.margins: parent.height * 0.25
-            radius: parent.radius
-            color: "white"
-            opacity: 0.5
-        }
-        Text {
-            anchors.centerIn: parent
-            z: parent.z + 1
-            text: name + ":  " + rootItem.color
+            anchors.margins: 6
+            spacing: 8
+
+            // Color swatch
+            Rectangle {
+                Layout.preferredWidth: 28
+                Layout.preferredHeight: 28
+                radius: 6
+                color: rootItem.color
+                border.color: Qt.rgba(palette.text.r, palette.text.g, palette.text.b, 0.3)
+                border.width: 1
+            }
+
+            // Label and hex value
+            Column {
+                Layout.fillWidth: true
+                spacing: 1
+                Text {
+                    text: rootItem.name
+                    font.pixelSize: 11
+                    color: palette.text
+                    opacity: 0.7
+                }
+                Text {
+                    text: rootItem.color.toString().toUpperCase()
+                    font.pixelSize: 12
+                    font.bold: true
+                    color: palette.text
+                }
+            }
         }
     }
+
     MouseArea {
+        id: mouseArea
         anchors.fill: parent
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
         onClicked: colorDialog.open()
     }
 }

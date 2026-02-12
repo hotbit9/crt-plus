@@ -98,6 +98,7 @@ QtObject {
 
     property real _frameShininess: 0.2
     property real frameShininess: _frameShininess * 0.5
+    property bool solidFrameColor: false  // Use frame color directly instead of mixing with font/background
 
     property real _frameSize: 0.2
     property real frameSize: _frameSize * 0.05
@@ -219,7 +220,8 @@ QtObject {
             "frameSize": _frameSize,
             "screenRadius": _screenRadius,
             "frameColor": _frameColor,
-            "frameShininess": _frameShininess
+            "frameShininess": _frameShininess,
+            "solidFrameColor": solidFrameColor
         }
         return profile
     }
@@ -363,6 +365,7 @@ QtObject {
         _screenRadius = settings.screenRadius !== undefined ? settings.screenRadius : _screenRadius
         _frameColor = settings.frameColor !== undefined ? settings.frameColor : _frameColor
         _frameShininess = settings.frameShininess !== undefined ? settings.frameShininess : _frameShininess
+        solidFrameColor = settings.solidFrameColor !== undefined ? settings.solidFrameColor : false
 
         blinkingCursor = settings.blinkingCursor !== undefined ? settings.blinkingCursor : blinkingCursor
 

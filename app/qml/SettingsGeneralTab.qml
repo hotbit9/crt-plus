@@ -22,6 +22,8 @@ import QtQuick.Controls 2.4
 import QtQuick.Layouts 1.1
 import QtQuick.Dialogs
 
+import "Components"
+
 ColumnLayout {
     GroupBox {
         Layout.fillWidth: true
@@ -300,6 +302,14 @@ ColumnLayout {
             SimpleSlider {
                 onValueChanged: appSettings._frameSize = value
                 value: appSettings._frameSize
+            }
+            // Solid: use frame color directly; off: mix with font/background based on ambient light
+            StyledCheckBox {
+                text: qsTr("Solid frame color")
+                Layout.columnSpan: 2
+                checked: appSettings.solidFrameColor
+                onCheckedChanged: appSettings.solidFrameColor = checked
+                enabled: appSettings._frameSize > 0
             }
             Label {
                 text: qsTr("Opacity")
