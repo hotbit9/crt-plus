@@ -50,6 +50,9 @@ ShaderEffect {
 
     property real ambientLight: profileSettings.ambientLight
 
+    // 1.0 = flat solid color, 0.0 = classic 3D bevel
+    property real flatFrame: profileSettings.flatFrame ? 1.0 : 0.0
+
     vertexShader: "qrc:/shaders/terminal_frame.vert.qsb"
     fragmentShader: "qrc:/shaders/terminal_frame.frag.qsb"
 

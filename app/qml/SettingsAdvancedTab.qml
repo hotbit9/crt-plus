@@ -21,7 +21,6 @@ import QtQuick 2.2
 import QtQuick.Controls 2.0
 import QtQuick.Layouts 1.1
 
-
 import "Components"
 
 ColumnLayout {
@@ -56,8 +55,8 @@ ColumnLayout {
             StyledCheckBox {
                 id: blinkingCursor
                 text: qsTr("Blinking Cursor")
-                checked: appSettings.blinkingCursor
                 onCheckedChanged: appSettings.blinkingCursor = checked
+                Binding on checked { value: appSettings.blinkingCursor }
             }
             StyledCheckBox {
                 id: showMenubar
@@ -120,10 +119,9 @@ ColumnLayout {
                 id: effectsFpsSlider
                 onValueChanged: appSettings.effectsFrameSkip = Math.round(value)
                 stepSize: 1
-                enabled: true
                 from: 5
                 to: 1
-                value: appSettings.effectsFrameSkip
+                Binding on value { value: appSettings.effectsFrameSkip }
             }
 
             SizedLabel {
@@ -138,9 +136,8 @@ ColumnLayout {
                 Layout.columnSpan: 2
                 onValueChanged: appSettings.windowScaling = value
                 stepSize: 0.05
-                enabled: true
                 from: 0.25
-                value: appSettings.windowScaling
+                Binding on value { value: appSettings.windowScaling }
             }
             SizedLabel {
                 text: Math.round(txtslider.value * 100) + "%"
@@ -155,9 +152,8 @@ ColumnLayout {
                 id: bloomSlider
                 onValueChanged: appSettings.bloomQuality = value
                 stepSize: 0.05
-                enabled: true
                 from: 0.25
-                value: appSettings.bloomQuality
+                Binding on value { value: appSettings.bloomQuality }
             }
             SizedLabel {
                 text: Math.round(bloomSlider.value * 100) + "%"
@@ -172,9 +168,8 @@ ColumnLayout {
                 Layout.columnSpan: 2
                 onValueChanged: appSettings.burnInQuality = value
                 stepSize: 0.05
-                enabled: true
                 from: 0.25
-                value: appSettings.burnInQuality
+                Binding on value { value: appSettings.burnInQuality }
             }
             SizedLabel {
                 text: Math.round(burnInSlider.value * 100) + "%"

@@ -69,7 +69,6 @@ ColumnLayout {
                 name: qsTr("Ambient Light")
                 onNewValue: function(newValue) { appSettings.ambientLight = newValue }
                 value: appSettings.ambientLight
-                enabled: appSettings.framesIndex !== 0
             }
             CheckableSlider {
                 name: qsTr("Flickering")
@@ -101,8 +100,8 @@ ColumnLayout {
                     text: qsTr("75Ω")
                 }
                 Switch {
-                    checked: appSettings.highImpedance
                     onCheckedChanged: appSettings.highImpedance = checked
+                    Binding on checked { value: appSettings.highImpedance }
                 }
                 Label {
                     text: qsTr("Hi-Z")

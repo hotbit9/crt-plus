@@ -88,8 +88,12 @@ ColumnLayout {
                 Button {
                     Layout.fillWidth: true
                     text: qsTr("Duplicate")
+                    property alias currentIndex: profilesView.currentIndex
+                    enabled: currentIndex >= 0
                     onClicked: {
-                        insertname.profileName = ""
+                        var profile = appSettings.profilesList.get(currentIndex)
+                        insertname._sourceProfileString = profile.obj_string
+                        insertname.profileName = profile.text
                         insertname.show()
                     }
                 }
@@ -98,24 +102,22 @@ ColumnLayout {
                     property alias currentIndex: profilesView.currentIndex
                     enabled: currentIndex >= 0
                     text: qsTr("Load")
-                    onClicked: {
-                        var index = currentIndex
-                        if (index >= 0)
-                            appSettings.loadProfile(index)
-                    }
+                    onClicked: appSettings.loadProfile(currentIndex)
                 }
                 Button {
                     Layout.fillWidth: true
                     text: qsTr("Update")
-                    property alias currentIndex: profilesView.currentIndex
-                    enabled: currentIndex >= 0
-                             && currentIndex === appSettings.currentProfileIndex
+                    enabled: appSettings.currentProfileIndex >= 0
+                             && appSettings.profileDirty
                     onClicked: {
-                        appSettings.profilesList.setProperty(currentIndex, "obj_string",
+                        var idx = appSettings.currentProfileIndex
+                        appSettings.profilesList.setProperty(idx, "obj_string",
                                                              appSettings.composeProfileString())
                         appSettings.storeCustomProfiles()
                         appSettings.storage.setSetting("_MODIFIED_BUILTINS",
                                                        appSettings.composeModifiedBuiltinsString())
+                        appSettings._profileSnapshot = appSettings.composeProfileString()
+                        profilesView.currentIndex = idx
                         feedbackLabel.text = qsTr("✓ Updated"); feedbackTimer.restart()
                     }
                 }
@@ -273,43 +275,28 @@ ColumnLayout {
             }
             SimpleSlider {
                 onValueChanged: appSettings.brightness = value
-                value: appSettings.brightness
+                Binding on value { value: appSettings.brightness }
             }
             Label {
                 text: qsTr("Contrast")
             }
             SimpleSlider {
                 onValueChanged: appSettings.contrast = value
-                value: appSettings.contrast
+                Binding on value { value: appSettings.contrast }
             }
             Label {
                 text: qsTr("Margin")
             }
             SimpleSlider {
                 onValueChanged: appSettings._margin = value
-                value: appSettings._margin
+                Binding on value { value: appSettings._margin }
             }
             Label {
                 text: qsTr("Radius")
             }
             SimpleSlider {
                 onValueChanged: appSettings._screenRadius = value
-                value: appSettings._screenRadius
-            }
-            Label {
-                text: qsTr("Frame size")
-            }
-            SimpleSlider {
-                onValueChanged: appSettings._frameSize = value
-                value: appSettings._frameSize
-            }
-            // Solid: use frame color directly; off: mix with font/background based on ambient light
-            StyledCheckBox {
-                text: qsTr("Solid frame color")
-                Layout.columnSpan: 2
-                checked: appSettings.solidFrameColor
-                onCheckedChanged: appSettings.solidFrameColor = checked
-                enabled: appSettings._frameSize > 0
+                Binding on value { value: appSettings._screenRadius }
             }
             Label {
                 text: qsTr("Opacity")
@@ -317,8 +304,41 @@ ColumnLayout {
             }
             SimpleSlider {
                 onValueChanged: appSettings.windowOpacity = value
-                value: appSettings.windowOpacity
+                Binding on value { value: appSettings.windowOpacity }
                 visible: !appSettings.isMacOS
+            }
+        }
+    }
+
+    GroupBox {
+        title: qsTr("Frame")
+        Layout.fillWidth: true
+        padding: appSettings.defaultMargin
+        GridLayout {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            columns: 2
+            Label {
+                text: qsTr("Size")
+            }
+            SimpleSlider {
+                onValueChanged: appSettings._frameSize = value
+                Binding on value { value: appSettings._frameSize }
+            }
+            // Frame color options: solid = exact color; flat = no 3D bevel
+            StyledCheckBox {
+                text: qsTr("Solid color")
+                Layout.columnSpan: 2
+                onCheckedChanged: appSettings.solidFrameColor = checked
+                Binding on checked { value: appSettings.solidFrameColor }
+            }
+            StyledCheckBox {
+                text: qsTr("Flat")
+                Layout.columnSpan: 2
+                Layout.leftMargin: 24
+                onCheckedChanged: appSettings.flatFrame = checked
+                Binding on checked { value: appSettings.flatFrame }
+                enabled: appSettings.solidFrameColor
             }
         }
     }
@@ -326,20 +346,29 @@ ColumnLayout {
     // DIALOGS ////////////////////////////////////////////////////////////////
     InsertNameDialog {
         id: insertname
+        property string _sourceProfileString: ""
         onNameSelected: {
-            appSettings.appendCustomProfile(name,
-                                            appSettings.composeProfileString())
+            appSettings.appendCustomProfile(name, _sourceProfileString)
+            appSettings.storeCustomProfiles()
+            var newIndex = appSettings.profilesList.count - 1
+            appSettings.loadProfile(newIndex)
+            profilesView.currentIndex = newIndex
         }
     }
-    MessageDialog {
+    Dialog {
         id: confirmRemoveDialog
         property int profileIndex: -1
         property string profileName
         title: qsTr("Remove Profile")
-        text: qsTr("Remove \"%1\"?").arg(profileName)
-        buttons: MessageDialog.Yes | MessageDialog.No
+        modal: true
+        anchors.centerIn: parent
+        standardButtons: Dialog.Yes | Dialog.No
+        Label {
+            text: qsTr("Remove \"%1\"?").arg(confirmRemoveDialog.profileName)
+        }
         onAccepted: {
             var removedIndex = profileIndex
+            var wasLoaded = (removedIndex === appSettings.currentProfileIndex)
 
             if (appSettings.profilesList.get(removedIndex).text === appSettings.defaultProfileName) {
                 appSettings.defaultProfileName = ""
@@ -347,28 +376,29 @@ ColumnLayout {
             }
 
             appSettings.profilesList.remove(removedIndex)
+            appSettings.storeCustomProfiles()
 
-            if (removedIndex < appSettings.currentProfileIndex) {
+            if (wasLoaded) {
+                var defaultIndex = appSettings.getProfileIndexByName(appSettings.defaultProfileName)
+                if (defaultIndex < 0) defaultIndex = 0
+                appSettings.loadProfile(defaultIndex)
+                profilesView.currentIndex = defaultIndex
+            } else if (removedIndex < appSettings.currentProfileIndex) {
                 appSettings.currentProfileIndex--
-            } else if (removedIndex === appSettings.currentProfileIndex) {
-                appSettings.currentProfileIndex = -1
+                profilesView.currentIndex = appSettings.currentProfileIndex
             }
 
-            profilesView.selection.clear()
-
-            // TODO This is a very ugly workaround. The view didn't update on Qt 5.3.2.
-            profilesView.model = 0
-            profilesView.model = appSettings.profilesList
             feedbackLabel.text = qsTr("✓ Removed"); feedbackTimer.restart()
         }
     }
-    MessageDialog {
+    Dialog {
         id: messageDialog
+        property alias text: messageLabel.text
         title: qsTr("File Error")
-        buttons: MessageDialog.Ok
-        onAccepted: {
-            messageDialog.close()
-        }
+        modal: true
+        anchors.centerIn: parent
+        standardButtons: Dialog.Ok
+        Label { id: messageLabel }
     }
     Loader {
         property var callBack

@@ -99,9 +99,10 @@ QtObject {
     property real _frameShininess: 0.2
     property real frameShininess: _frameShininess * 0.5
     property bool solidFrameColor: false  // Use frame color directly instead of mixing with font/background
+    property bool flatFrame: false  // Flat solid color without 3D bevel shading
 
     property real _frameSize: 0.2
-    property real frameSize: _frameSize * 0.05
+    property real frameSize: _frameSize * 0.075
 
     property real _screenRadius: 0.2
     property real screenRadius: Utils.lint(4.0, 120.0, _screenRadius)
@@ -146,6 +147,16 @@ QtObject {
     property string defaultProfileName: "CRT Plus"
     property int currentProfileIndex: -1
     property var builtinProfileDefaults: ({})
+
+    // Dirty tracking: detect unsaved changes vs. the loaded profile.
+    // _profileRevision increments on every property change; referencing it in
+    // profileDirty forces QML to re-evaluate the binding (QML can't track
+    // dependencies inside composeProfileString()).
+    property string _profileSnapshot: ""
+    property int _profileRevision: 0
+    readonly property bool profileDirty: _profileRevision >= 0
+                                         && _profileSnapshot !== ""
+                                         && composeProfileString() !== _profileSnapshot
 
     signal initializedSettings
     signal profileChanged()
@@ -221,7 +232,8 @@ QtObject {
             "screenRadius": _screenRadius,
             "frameColor": _frameColor,
             "frameShininess": _frameShininess,
-            "solidFrameColor": solidFrameColor
+            "solidFrameColor": solidFrameColor,
+            "flatFrame": flatFrame
         }
         return profile
     }
@@ -366,10 +378,12 @@ QtObject {
         _frameColor = settings.frameColor !== undefined ? settings.frameColor : _frameColor
         _frameShininess = settings.frameShininess !== undefined ? settings.frameShininess : _frameShininess
         solidFrameColor = settings.solidFrameColor !== undefined ? settings.solidFrameColor : false
+        flatFrame = settings.flatFrame !== undefined ? settings.flatFrame : false
 
         blinkingCursor = settings.blinkingCursor !== undefined ? settings.blinkingCursor : blinkingCursor
 
         profileChanged()
+        _profileSnapshot = composeProfileString()
     }
 
     function storeCustomProfiles() {
@@ -415,8 +429,8 @@ QtObject {
 
     function loadProfile(index) {
         var profile = profilesList.get(index)
-        loadProfileString(profile.obj_string)
         currentProfileIndex = index
+        loadProfileString(profile.obj_string)
     }
 
     function setDefaultProfile(index) {
@@ -1095,6 +1109,24 @@ QtObject {
         if (currentProfileIndex < 0) {
             currentProfileIndex = 0
         }
+
+        // Connect all profile properties to revision counter for dirty tracking
+        var profileProps = [
+            "_backgroundColor", "_fontColor", "_frameColor", "flickering",
+            "horizontalSync", "staticNoise", "chromaColor", "saturationColor",
+            "screenCurvature", "glowingLine", "burnIn", "bloom", "jitter",
+            "rgbShift", "brightness", "contrast", "highImpedance", "ambientLight",
+            "windowOpacity", "_margin", "_frameSize", "_screenRadius",
+            "_frameShininess", "solidFrameColor", "flatFrame", "blinkingCursor",
+            "rasterization", "fontSource", "fontName", "fontWidth", "lineSpacing"
+        ]
+        for (var pi = 0; pi < profileProps.length; pi++) {
+            var sig = appSettings[profileProps[pi] + "Changed"]
+            if (sig) sig.connect(function() { _profileRevision++ })
+        }
+
+        // Take initial snapshot after all loading is complete
+        _profileSnapshot = composeProfileString()
 
         initializedSettings()
     }

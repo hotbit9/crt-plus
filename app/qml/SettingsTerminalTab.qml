@@ -21,7 +21,6 @@ import QtQuick 2.2
 import QtQuick.Controls 2.1
 import QtQuick.Layouts 1.1
 
-
 import "Components"
 
 ColumnLayout {
@@ -40,17 +39,13 @@ ColumnLayout {
                 Layout.fillWidth: true
                 RadioButton {
                     text: qsTr("Bundled")
-                    checked: appSettings.fontSource === appSettings.bundled_fonts
-                    onClicked: {
-                        appSettings.fontSource = appSettings.bundled_fonts
-                    }
+                    onClicked: appSettings.fontSource = appSettings.bundled_fonts
+                    Binding on checked { value: appSettings.fontSource === appSettings.bundled_fonts }
                 }
                 RadioButton {
                     text: qsTr("System")
-                    checked: appSettings.fontSource === appSettings.system_fonts
-                    onClicked: {
-                        appSettings.fontSource = appSettings.system_fonts
-                    }
+                    onClicked: appSettings.fontSource = appSettings.system_fonts
+                    Binding on checked { value: appSettings.fontSource === appSettings.system_fonts }
                 }
             }
             Label {
@@ -59,15 +54,10 @@ ColumnLayout {
             }
             ComboBox {
                 id: renderingBox
-
-                property string selectedElement: model[currentIndex]
-
                 Layout.fillWidth: true
                 model: [qsTr("Default"), qsTr("Scanlines"), qsTr("Pixels"), qsTr("Sub-Pixels"), qsTr("Modern")]
-                currentIndex: appSettings.rasterization
-                onCurrentIndexChanged: {
-                    appSettings.rasterization = currentIndex
-                }
+                onCurrentIndexChanged: appSettings.rasterization = currentIndex
+                Binding on currentIndex { value: appSettings.rasterization }
                 enabled: appSettings.fontSource === appSettings.bundled_fonts
             }
             Label {
@@ -125,7 +115,7 @@ ColumnLayout {
                     Layout.fillWidth: true
                     id: fontScalingChanger
                     onValueChanged: appSettings.fontScaling = value
-                    value: appSettings.fontScaling
+                    Binding on value { value: appSettings.fontScaling }
                     stepSize: 0.05
                     from: appSettings.minimumFontScaling
                     to: appSettings.maximumFontScaling
@@ -143,7 +133,7 @@ ColumnLayout {
                     Layout.fillWidth: true
                     id: widthChanger
                     onValueChanged: appSettings.fontWidth = value
-                    value: appSettings.fontWidth
+                    Binding on value { value: appSettings.fontWidth }
                     stepSize: 0.05
                     from: 0.5
                     to: 1.5
@@ -161,7 +151,7 @@ ColumnLayout {
                     Layout.fillWidth: true
                     id: lineSpacingChanger
                     onValueChanged: appSettings.lineSpacing = value
-                    value: appSettings.lineSpacing
+                    Binding on value { value: appSettings.lineSpacing }
                     stepSize: 0.01
                     from: 0.0
                     to: 1.0

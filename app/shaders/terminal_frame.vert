@@ -13,6 +13,7 @@ layout(std140, binding = 0) uniform ubuf {
     vec2 viewportSize;
     float ambientLight;
     float frameShininess;
+    float flatFrame;
 };
 
 layout(location = 0) out vec2 qt_TexCoord0;

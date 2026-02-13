@@ -53,6 +53,7 @@ QtObject {
     property real _screenRadius: 0.2
     property real _frameShininess: 0.2
     property bool solidFrameColor: false  // Use frame color directly instead of mixing with font/background
+    property bool flatFrame: false  // Flat solid color without 3D bevel shading
     property bool blinkingCursor: false
     property int currentProfileIndex: -1
 
@@ -73,7 +74,7 @@ QtObject {
     property color frameColor: Utils.strToColor(_frameColor)
 
     property real frameShininess: _frameShininess * 0.5
-    property real frameSize: _frameSize * 0.05
+    property real frameSize: _frameSize * 0.075
     property real screenRadius: Utils.lint(4.0, 120.0, _screenRadius)
     property real margin: Utils.lint(1.0, 40.0, _margin) + (1.0 - Math.SQRT1_2) * screenRadius
     readonly property bool frameEnabled: ambientLight > 0 || _frameSize > 0 || screenCurvature > 0
@@ -125,7 +126,8 @@ QtObject {
             "screenRadius": _screenRadius,
             "frameColor": _frameColor,
             "frameShininess": _frameShininess,
-            "solidFrameColor": solidFrameColor
+            "solidFrameColor": solidFrameColor,
+            "flatFrame": flatFrame
         }
         return profile
     }
@@ -167,6 +169,7 @@ QtObject {
         _frameColor = s.frameColor !== undefined ? s.frameColor : _frameColor
         _frameShininess = s.frameShininess !== undefined ? s.frameShininess : _frameShininess
         solidFrameColor = s.solidFrameColor !== undefined ? s.solidFrameColor : false
+        flatFrame = s.flatFrame !== undefined ? s.flatFrame : false
         blinkingCursor = s.blinkingCursor !== undefined ? s.blinkingCursor : blinkingCursor
 
         profileChanged()
@@ -199,6 +202,7 @@ QtObject {
         _screenRadius = appSettings._screenRadius
         _frameShininess = appSettings._frameShininess
         solidFrameColor = appSettings.solidFrameColor
+        flatFrame = appSettings.flatFrame
         blinkingCursor = appSettings.blinkingCursor
         fontSource = appSettings.fontSource
         fontName = appSettings.fontName
@@ -238,6 +242,7 @@ QtObject {
         appSettings._screenRadius = _screenRadius
         appSettings._frameShininess = _frameShininess
         appSettings.solidFrameColor = solidFrameColor
+        appSettings.flatFrame = flatFrame
         appSettings.blinkingCursor = blinkingCursor
         appSettings.fontSource = fontSource
         appSettings.fontName = fontName

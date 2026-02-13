@@ -13,6 +13,7 @@ layout(std140, binding = 0) uniform ubuf {
     vec2 viewportSize;
     float ambientLight;
     float frameShininess;
+    float flatFrame;
 };
 
 float min2(vec2 v) { return min(v.x, v.y); }
@@ -62,12 +63,22 @@ void main() {
     );
 
     float distPixels = roundedRectSdfPixels(coords, vec2(0.0), vec2(1.0), screenRadiusPixels);
+
+    float inScreen = smoothstep(0.0, edgeSoftPixels, -distPixels);
+
+    // Flat frame: solid color without 3D bevel or inner border
+    if (flatFrame > 0.5) {
+        float alpha = mix(1.0, 0.0, inScreen);
+        fragColor = vec4(frameColor.rgb, alpha) * qt_Opacity;
+        return;
+    }
+
+    // Classic 3D bevel frame
     float frameShadow = (e * 0.66 + w * 0.66 + n * 0.33 + s);
     frameShadow *= smoothstep(0.0, edgeSoftPixels * 5.0, distPixels);
 
     float frameAlpha = 1.0 - frameShininess * 0.4;
 
-    float inScreen = smoothstep(0.0, edgeSoftPixels, -distPixels);
     float alpha = mix(frameAlpha, mix(0.0, 0.3, ambientLight), inScreen);
     float glass = clamp(ambientLight * pow(prod2(coords * (1.0 - coords.yx)) * 25.0, 0.5) * inScreen, 0.0, 1.0);
     vec3 frameTint = frameColor.rgb * frameShadow;
