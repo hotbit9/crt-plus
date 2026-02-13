@@ -2,7 +2,7 @@
 
 > **Cool Retro Term — Supercharged**
 
-A fork of [cool-retro-term](https://github.com/Swordfish90/cool-retro-term) with enhanced profile management and authentic CRT simulation features.
+A retro terminal emulator for macOS and Linux with enhanced profile management, split panes, and authentic CRT simulation. Based on [cool-retro-term](https://github.com/Swordfish90/cool-retro-term).
 
 |Default Amber|C:\ IBM DOS|$ Default Green|
 |---|---|---|
@@ -104,7 +104,7 @@ Right-click any folder in Finder → Services to open it in CRT Plus:
 CRT Plus is a terminal emulator which mimics the look and feel of the old cathode tube screens.
 It has been designed to be eye-candy, customizable, and reasonably lightweight.
 
-It uses the QML port of qtermwidget (Konsole): https://github.com/Swordfish90/qmltermwidget.
+It uses a QML port of qtermwidget (Konsole).
 
 This terminal emulator works under Linux and macOS and requires Qt6.
 
@@ -120,13 +120,13 @@ Settings such as colors, fonts, and effects can be accessed via context menu.
 ### macOS
 ```bash
 brew install qt6
-git clone --recursive https://github.com/hotbit9/cool-retro-term.git
-cd cool-retro-term
+git clone --recursive https://github.com/hotbit9/crt-plus.git
+cd crt-plus
 qmake6 && make
 ```
 
 ### Linux
-Check out the wiki for [Linux build instructions](https://github.com/Swordfish90/cool-retro-term/wiki/Build-Instructions-(Linux)).
+Check out the [cool-retro-term wiki](https://github.com/Swordfish90/cool-retro-term/wiki/Build-Instructions-(Linux)) for Linux dependency info — the build steps are the same.
 
 ## Credits
 Based on [cool-retro-term](https://github.com/Swordfish90/cool-retro-term) by Filippo Scognamiglio.
