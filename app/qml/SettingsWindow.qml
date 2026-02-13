@@ -22,55 +22,128 @@ import QtQuick 2.2
 import QtQuick.Controls 2.1
 import QtQuick.Window 2.1
 import QtQuick.Layouts 1.3
-import QtQuick.Dialogs
 
 ApplicationWindow {
-    readonly property real tabButtonPadding: 10
-
     id: settings_window
     title: qsTr("Settings")
     width: 640
-    height: 660
+    height: 720
 
-    Item {
-        anchors { fill: parent; }
+    property int currentTab: 0
 
-        TabBar {
-            id: bar
-            anchors { left: parent.left; right: parent.right; top: parent.top; }
-            TabButton {
-                padding: tabButtonPadding
-                text: qsTr("General")
-            }
-            TabButton {
-                padding: tabButtonPadding
-                text: qsTr("Terminal")
-            }
-            TabButton {
-                padding: tabButtonPadding
-                text: qsTr("Effects")
-            }
-            TabButton {
-                padding: tabButtonPadding
-                text: qsTr("Advanced")
+    readonly property var tabModel: [
+        { icon: "\u2261", label: qsTr("Profiles") },
+        { icon: "\u25D0", label: qsTr("Appearance") },
+        { icon: "\u2738", label: qsTr("Effects") },
+        { icon: ">_",     label: qsTr("Terminal") }
+    ]
+
+    Column {
+        anchors.fill: parent
+
+        // TOOLBAR //////////////////////////////////////////////////////////////
+        Item {
+            id: toolbar
+            width: parent.width
+            height: 60
+
+            Row {
+                anchors.centerIn: parent
+                spacing: 4
+
+                Repeater {
+                    model: tabModel
+
+                    Rectangle {
+                        width: 80
+                        height: 52
+                        radius: 6
+                        color: {
+                            if (index === currentTab)
+                                return palette.highlight
+                            if (hoverArea.containsMouse)
+                                return Qt.rgba(palette.text.r, palette.text.g, palette.text.b, 0.06)
+                            return "transparent"
+                        }
+
+                        Column {
+                            anchors.centerIn: parent
+                            spacing: 2
+
+                            Label {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: modelData.icon
+                                font.pixelSize: 20
+                                font.bold: true
+                                color: index === currentTab ? palette.highlightedText : palette.text
+                            }
+                            Label {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: modelData.label
+                                font.pixelSize: 11
+                                color: index === currentTab ? palette.highlightedText : palette.text
+                            }
+                        }
+
+                        MouseArea {
+                            id: hoverArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: currentTab = index
+                        }
+                    }
+                }
             }
         }
 
+        // SEPARATOR ////////////////////////////////////////////////////////////
+        Rectangle {
+            width: parent.width
+            height: 1
+            color: palette.text
+            opacity: 0.12
+        }
+
+        // CONTENT //////////////////////////////////////////////////////////////
         StackLayout {
-            anchors {
-                top: bar.bottom
-                left: parent.left
-                right: parent.right
-                bottom: parent.bottom
-                margins: 16
+            width: parent.width
+            height: parent.height - toolbar.height - 1
+
+            currentIndex: currentTab
+
+            Item {
+                SettingsProfilesTab {
+                    anchors {
+                        fill: parent
+                        margins: 20
+                    }
+                }
             }
-
-            currentIndex: bar.currentIndex
-
-            SettingsGeneralTab { }
-            SettingsTerminalTab { }
-            SettingsEffectsTab { }
-            SettingsAdvancedTab { }
+            Item {
+                SettingsAppearanceTab {
+                    anchors {
+                        fill: parent
+                        margins: 20
+                    }
+                }
+            }
+            Item {
+                SettingsEffectsTab {
+                    anchors {
+                        fill: parent
+                        margins: 20
+                    }
+                }
+            }
+            Item {
+                SettingsTerminalTab {
+                    anchors {
+                        fill: parent
+                        margins: 20
+                    }
+                }
+            }
         }
     }
 }

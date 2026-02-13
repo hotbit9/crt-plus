@@ -1,39 +1,27 @@
-/*******************************************************************************
-* Copyright (c) 2013-2021 "Filippo Scognamiglio"
-* https://github.com/Swordfish90/cool-retro-term
-*
-* This file is part of cool-retro-term.
-*
-* cool-retro-term is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*******************************************************************************/
 import QtQuick 2.2
 import QtQuick.Controls 2.0
 import QtQuick.Layouts 1.1
 
-ColumnLayout {
-    Layout.fillWidth: true
-    Layout.fillHeight: true
-    spacing: 2
+import "Components"
 
-    GroupBox {
-        title: qsTr("Effects")
-        Layout.fillWidth: true
-        Layout.fillHeight: true
-        padding: appSettings.defaultMargin
+Flickable {
+    contentHeight: column.implicitHeight
+    contentWidth: width
+    clip: true
+    boundsBehavior: Flickable.StopAtBounds
 
+    ColumnLayout {
+        id: column
+        width: parent.width
+        spacing: 2
+
+        // EFFECTS //////////////////////////////////////////////////////////////
+        SectionHeader {
+            text: qsTr("Effects")
+            showSeparator: false
+        }
         ColumnLayout {
-            anchors.fill: parent
+            Layout.fillWidth: true
 
             CheckableSlider {
                 name: qsTr("Bloom")
@@ -97,7 +85,7 @@ ColumnLayout {
                     Layout.preferredWidth: 160
                 }
                 Label {
-                    text: qsTr("75Ω")
+                    text: qsTr("75\u03A9")
                 }
                 Switch {
                     onCheckedChanged: appSettings.highImpedance = checked
@@ -109,5 +97,80 @@ ColumnLayout {
                 Item { Layout.fillWidth: true }
             }
         }
+
+        // PERFORMANCE //////////////////////////////////////////////////////////
+        SectionHeader {
+            text: qsTr("Performance")
+        }
+        GridLayout {
+            Layout.fillWidth: true
+            columns: 4
+
+            Label {
+                text: qsTr("Effects FPS")
+            }
+            StyledSlider {
+                Layout.fillWidth: true
+                Layout.columnSpan: 2
+                id: effectsFpsSlider
+                onValueChanged: appSettings.effectsFrameSkip = Math.round(value)
+                stepSize: 1
+                from: 5
+                to: 1
+                Binding on value { value: appSettings.effectsFrameSkip }
+            }
+            SizedLabel {
+                text: Math.round(100 / Math.max(1, Math.round(effectsFpsSlider.value))) + "%"
+            }
+            Label {
+                text: qsTr("Texture Quality")
+            }
+            StyledSlider {
+                id: txtslider
+                Layout.fillWidth: true
+                Layout.columnSpan: 2
+                onValueChanged: appSettings.windowScaling = value
+                stepSize: 0.05
+                from: 0.25
+                Binding on value { value: appSettings.windowScaling }
+            }
+            SizedLabel {
+                text: Math.round(txtslider.value * 100) + "%"
+            }
+
+            Label {
+                text: qsTr("Bloom Quality")
+            }
+            StyledSlider {
+                Layout.fillWidth: true
+                Layout.columnSpan: 2
+                id: bloomSlider
+                onValueChanged: appSettings.bloomQuality = value
+                stepSize: 0.05
+                from: 0.25
+                Binding on value { value: appSettings.bloomQuality }
+            }
+            SizedLabel {
+                text: Math.round(bloomSlider.value * 100) + "%"
+            }
+
+            Label {
+                text: qsTr("BurnIn Quality")
+            }
+            StyledSlider {
+                Layout.fillWidth: true
+                id: burnInSlider
+                Layout.columnSpan: 2
+                onValueChanged: appSettings.burnInQuality = value
+                stepSize: 0.05
+                from: 0.25
+                Binding on value { value: appSettings.burnInQuality }
+            }
+            SizedLabel {
+                text: Math.round(burnInSlider.value * 100) + "%"
+            }
+        }
+
+        Item { height: 20 }
     }
 }

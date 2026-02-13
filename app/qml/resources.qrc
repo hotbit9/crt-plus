@@ -6,7 +6,8 @@
         <file>ApplicationSettings.qml</file>
         <file>SettingsWindow.qml</file>
         <file>TerminalWindow.qml</file>
-        <file>SettingsGeneralTab.qml</file>
+        <file>SettingsProfilesTab.qml</file>
+        <file>SettingsAppearanceTab.qml</file>
         <file>PreprocessedTerminal.qml</file>
         <file>TimeManager.qml</file>
         <file>SimpleSlider.qml</file>
@@ -19,7 +20,7 @@
         <file>fonts/apple2/PrintChar21.ttf</file>
         <file>fonts/ibm-3278/3270NerdFontMono-Regular.ttf</file>
         <file>Storage.qml</file>
-        <file>SettingsAdvancedTab.qml</file>
+        <file>Components/SectionHeader.qml</file>
         <file>ProfileSettings.qml</file>
         <file>TerminalContainer.qml</file>
         <file>SplitPane.qml</file>
