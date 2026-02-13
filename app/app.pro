@@ -20,6 +20,9 @@ macx {
     HEADERS += macutils.h badgehelper.h
     OBJECTIVE_SOURCES += macutils.mm
     LIBS += -framework AppKit
+    # Set display name to "CRT Plus" (Finder shows this instead of the binary name)
+    QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Set :CFBundleDisplayName 'CRT Plus'\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" 2>/dev/null || /usr/libexec/PlistBuddy -c \"Add :CFBundleDisplayName string 'CRT Plus'\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" ;
+    QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Set :CFBundleName 'CRT Plus'\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" 2>/dev/null || /usr/libexec/PlistBuddy -c \"Add :CFBundleName string 'CRT Plus'\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" ;
     # Start as LSUIElement (no dock icon). Primary instance promotes itself to Regular.
     QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Add :LSUIElement bool true\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" 2>/dev/null || /usr/libexec/PlistBuddy -c \"Set :LSUIElement true\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" ;
     # Accept folder drops on dock icon (opens new window in that directory)
