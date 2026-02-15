@@ -64,6 +64,13 @@ Get notified when background tabs, panes, or windows need attention:
 - Window title shows a **●** dot when any tab/pane has a badge
 - Badges clear automatically when you focus the relevant pane or tab
 
+### Session Persistence
+Your terminal sessions survive app restarts. When you quit CRT Plus, running shells and their scrollback are preserved by a lightweight background daemon. On relaunch, a dialog offers to restore your previous session — windows, tabs, splits, and all.
+- **Automatic**: Sessions are saved on quit and restored on next launch
+- **"Always restore without asking"** option to skip the dialog
+- **Daemon-backed**: A small `crt-sessiond` process keeps PTYs alive between app launches
+- **Graceful timeout**: If you don't relaunch within the timeout period, sessions are cleaned up automatically
+
 ### Drag-to-Reorder Tabs
 Rearrange tabs by dragging them, just like macOS Terminal:
 - **Drag** any tab to move it — neighboring tabs slide apart to show the drop position
