@@ -40,6 +40,7 @@ QtObject {
     property bool isMacOS: Qt.platform.os === "osx"
 
     // GENERAL SETTINGS ///////////////////////////////////////////////////////
+    property bool autoRestoreSessions: false
     property bool showMenubar: false
 
     property bool showTerminalSize: true
@@ -196,7 +197,8 @@ QtObject {
             "useCustomCommand": useCustomCommand,
             "customCommand": customCommand,
             "editorCommand": editorCommand,
-            "remoteEditorCommand": remoteEditorCommand
+            "remoteEditorCommand": remoteEditorCommand,
+            "autoRestoreSessions": autoRestoreSessions
         }
         return stringify(settings)
     }
@@ -329,6 +331,9 @@ QtObject {
                 !== undefined ? settings.editorCommand : editorCommand
         remoteEditorCommand = settings.remoteEditorCommand
                 !== undefined ? settings.remoteEditorCommand : remoteEditorCommand
+
+        autoRestoreSessions = settings.autoRestoreSessions
+                !== undefined ? settings.autoRestoreSessions : autoRestoreSessions
     }
 
     function loadProfileString(profileString) {

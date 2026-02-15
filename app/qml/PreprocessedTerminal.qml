@@ -33,6 +33,7 @@ Item{
     property string shellCommand: ""   // Custom program for split panes (e.g. "ssh")
     property var shellArgs: []         // Arguments for shellCommand (e.g. ["-t", "user@host"])
     property string initialSendText: "" // Text to send after prompt is detected (via sendTextOnceReady)
+    property string _attachSessionId: "" // Daemon session UUID to attach to (restore mode)
     signal sessionFinished()
     signal activated()
     signal bellRequested()
@@ -272,7 +273,18 @@ Item{
             if (terminalContainer.initialSendText !== "")
                 ksession.sendTextOnceReady(terminalContainer.initialSendText, appSettings.promptCharacters)
 
-            ksession.startShellProgram();
+            // Enable daemon-backed persistent session
+            ksession.persistentSession = true
+
+            if (terminalContainer._attachSessionId !== "") {
+                var result = ksession.attachToSession(terminalContainer._attachSessionId)
+                if (result < 0) {
+                    console.warn("Attach failed for " + terminalContainer._attachSessionId + ", starting new shell")
+                    ksession.startShellProgram();
+                }
+            } else {
+                ksession.startShellProgram();
+            }
             forceActiveFocus();
         }
         Component.onCompleted: {
@@ -487,6 +499,9 @@ Item{
         target: appSettings
         onEditorCommandChanged: kterminal.setFilePathEditorCommand(appSettings.editorCommand)
     }
+
+    function getDaemonSessionId() { return ksession.sessionId }
+    function closeSession() { ksession.closeSession() }
 
     function _isRemoteSession() {
         var fg = terminalContainer.foregroundProcessName

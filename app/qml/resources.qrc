@@ -45,6 +45,7 @@
         <file>fonts/pet-me/PetMe64.ttf</file>
         <file>fonts/pet-me/PetMe.ttf</file>
         <file>BurnInEffect.qml</file>
+        <file>RestoreSessionDialog.qml</file>
         <file>fonts/terminus/TerminessNerdFontMono-Regular.ttf</file>
         <file>fonts/departure-mono/DepartureMonoNerdFontMono-Regular.otf</file>
         <file>fonts/opendyslexic/OpenDyslexicMNerdFontMono-Regular.otf</file>

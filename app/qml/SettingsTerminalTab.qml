@@ -187,6 +187,11 @@ Flickable {
                 checked: appSettings.showMenubar
                 onCheckedChanged: appSettings.showMenubar = checked
             }
+            StyledCheckBox {
+                text: qsTr("Restore windows and tabs on launch")
+                checked: appSettings.autoRestoreSessions
+                onCheckedChanged: appSettings.autoRestoreSessions = checked
+            }
         }
 
         // EDITORS //////////////////////////////////////////////////////////////

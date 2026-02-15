@@ -19,6 +19,8 @@
 #include <fileio.h>
 #include <fontlistmodel.h>
 #include <fontmanager.h>
+#include "daemonlauncher.h"
+#include "sessionmanagerbackend.h"
 
 #if defined(Q_OS_MAC)
 #include <CoreFoundation/CoreFoundation.h>
@@ -27,13 +29,22 @@
 #include <QMenu>
 #include <macutils.h>
 #include "badgehelper.h"
+#endif
 
-class FileOpenHandler : public QObject {
+// App-level event filter for two purposes:
+// 1. QEvent::Quit: calls markQuitting() to set _isQuitting and save state.
+//    On macOS, Cmd+Q closes windows before this event fires, so the primary
+//    protection is that closeWindow() preserves sessions for the last window.
+//    markQuitting() is a secondary defense for multi-window Cmd+Q.
+// 2. QEvent::FileOpen (macOS): opens a new window when a folder is dragged
+//    onto the dock icon.
+class AppEventFilter : public QObject {
 public:
-    FileOpenHandler(QObject *rootObject, QObject *parent = nullptr)
-        : QObject(parent), m_rootObject(rootObject) {}
+    AppEventFilter(QObject *rootObject, QObject *parent = nullptr)
+        : QObject(parent), m_rootObject(rootObject), m_quitHandled(false) {}
 protected:
-    bool eventFilter(QObject *, QEvent *event) override {
+    bool eventFilter(QObject *obj, QEvent *event) override {
+#if defined(Q_OS_MAC)
         if (event->type() == QEvent::FileOpen) {
             auto *fileEvent = static_cast<QFileOpenEvent *>(event);
             QFileInfo info(fileEvent->file());
@@ -44,12 +55,17 @@ protected:
                 return true;
             }
         }
-        return false;
+#endif
+        if (event->type() == QEvent::Quit && !m_quitHandled) {
+            m_quitHandled = true;
+            QMetaObject::invokeMethod(m_rootObject, "markQuitting");
+        }
+        return QObject::eventFilter(obj, event);
     }
 private:
     QObject *m_rootObject;
+    bool m_quitHandled;
 };
-#endif
 
 QString getNamedArgument(QStringList args, QString name, QString defaultName)
 {
@@ -109,13 +125,16 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     app.setAttribute(Qt::AA_MacDontSwapCtrlAndMeta, true);
 
+    // Ensure daemon is running before we create any terminals
+    DaemonLauncher::ensureDaemonRunning();
+
 #if defined(Q_OS_MAC)
     setRegularApp();
 #endif
 
-    app.setApplicationName(QStringLiteral("crt-plus"));
-    app.setOrganizationName(QStringLiteral("crt-plus"));
-    app.setOrganizationDomain(QStringLiteral("crt-plus"));
+    app.setApplicationName(QStringLiteral("crt-plus-dev"));
+    app.setOrganizationName(QStringLiteral("crt-plus-dev"));
+    app.setOrganizationDomain(QStringLiteral("crt-plus-dev"));
     app.setApplicationVersion(appVersion);
 
     QQmlApplicationEngine engine;
@@ -151,6 +170,9 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("homeDir", QDir::homePath());
     engine.rootContext()->setContextProperty("fileIO", &fileIO);
 
+    SessionManagerBackend sessionMgr;
+    engine.rootContext()->setContextProperty("sessionManager", &sessionMgr);
+
 #if defined(Q_OS_MAC)
     BadgeHelper badgeHelper;
     engine.rootContext()->setContextProperty("badgeHelper", &badgeHelper);
@@ -172,6 +194,20 @@ int main(int argc, char *argv[])
 
     // Quit the application when the engine closes.
     QObject::connect((QObject*) &engine, SIGNAL(quit()), (QObject*) &app, SLOT(quit()));
+
+    // Session persistence on quit:
+    // - AppEventFilter intercepts QEvent::Quit to call markQuitting()
+    // - aboutToQuit calls saveSessionState() as a fallback
+    // - closeWindow() preserves last-window sessions independently
+    {
+        QObject *rootObj = engine.rootObjects().first();
+        // Install quit interceptor as app-level event filter
+        auto *quitFilter = new AppEventFilter(rootObj, &app);
+        app.installEventFilter(quitFilter);
+        QObject::connect(&app, &QCoreApplication::aboutToQuit, [rootObj]() {
+            QMetaObject::invokeMethod(rootObj, "saveSessionState");
+        });
+    }
 
 #if defined(Q_OS_MAC)
     {
@@ -231,9 +267,6 @@ int main(int argc, char *argv[])
 
         dockMenu->setAsDockMenu();
         markAsAlternate(dockMenu, newPaneRightAction);
-
-        // Handle folder drag-and-drop onto the dock icon
-        app.installEventFilter(new FileOpenHandler(rootObject, &app));
 
         // Register as a Finder Services provider ("New CRT Plus Window Here")
         registerServiceProvider(rootObject);

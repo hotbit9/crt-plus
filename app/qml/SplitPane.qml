@@ -269,6 +269,7 @@ Item {
         // ShaderEffectSource to stop capturing and go ghostly).
         deadChild._alive = false
         deadChild.visible = false
+        deadChild.destroyAllSessions()
         if (deadChild.isLeaf) {
             _destroyLeafContents(deadChild)
         } else {
@@ -357,6 +358,46 @@ Item {
         fileIO.reparentObject(item, splitPaneRoot)
         item.anchors.fill = splitPaneRoot
         item.parentSplitPane = null
+    }
+
+    // Explicitly DESTROY all daemon sessions in this subtree
+    function destroyAllSessions() {
+        var leaves = allLeaves()
+        for (var i = 0; i < leaves.length; i++) {
+            if (leaves[i].terminal)
+                leaves[i].terminal.closeSession()
+        }
+    }
+
+    // Capture the split tree structure for session persistence
+    function captureSplitTree() {
+        if (isLeaf) {
+            var node = {
+                "type": "leaf",
+                "sessionId": terminal ? terminal.getDaemonSessionId() : "",
+                "isFocused": isFocused
+            }
+            if (paneProfileSettings) {
+                node.profileString = paneProfileSettings.composeProfileString()
+                node.profileIndex = paneProfileSettings.currentProfileIndex
+            }
+            return node
+        }
+        var ratio = 0.5
+        if (child1 && splitView) {
+            // Inactive tabs in StackLayout may have zero dimensions — keep default 0.5
+            if (splitOrientation === Qt.Horizontal && splitPaneRoot.width > 0)
+                ratio = child1.width / splitPaneRoot.width
+            else if (splitOrientation === Qt.Vertical && splitPaneRoot.height > 0)
+                ratio = child1.height / splitPaneRoot.height
+        }
+        return {
+            "type": "branch",
+            "orientation": splitOrientation,
+            "splitRatio": ratio,
+            "child1": child1 ? child1.captureSplitTree() : null,
+            "child2": child2 ? child2.captureSplitTree() : null
+        }
     }
 
     function hasMultipleLeaves() {
@@ -505,10 +546,61 @@ Item {
         }
     }
 
+    // Restore a split tree from saved state (session persistence)
+    function restoreFromTree(tree) {
+        if (!tree) return
+        if (tree.type === "leaf") {
+            _restoreLeaf(tree)
+            return
+        }
+        // Branch: build tree structure (similar to split() but from saved state)
+        var sv = splitViewComponent.createObject(splitPaneRoot, {"orientation": tree.orientation})
+        var c1 = _getSplitPaneComponent().createObject(sv, {
+            "parentSplitPane": splitPaneRoot, "isFocused": false, "_skipAutoCreate": true
+        })
+        var c2 = _getSplitPaneComponent().createObject(sv, {
+            "parentSplitPane": splitPaneRoot, "isFocused": false, "_skipAutoCreate": true
+        })
+        var ratio = (tree.splitRatio > 0 && tree.splitRatio < 1) ? tree.splitRatio : 0.5
+        // Use actual size or a reference value for inactive tabs (zero size in
+        // StackLayout). SplitView scales preferred sizes proportionally, so
+        // arbitrary values work — the ratio is what matters.
+        var refSize = (tree.orientation === Qt.Horizontal) ? splitPaneRoot.width : splitPaneRoot.height
+        if (refSize <= 0) refSize = 1000
+        if (tree.orientation === Qt.Horizontal) {
+            c1.SplitView.preferredWidth = refSize * ratio
+            c2.SplitView.preferredWidth = refSize * (1 - ratio)
+        } else {
+            c1.SplitView.preferredHeight = refSize * ratio
+            c2.SplitView.preferredHeight = refSize * (1 - ratio)
+        }
+        splitView = sv; child1 = c1; child2 = c2; splitOrientation = tree.orientation
+        c1.restoreFromTree(tree.child1)
+        c2.restoreFromTree(tree.child2)
+    }
+
+    function _restoreLeaf(leafData) {
+        var ps
+        if (leafData.profileString) {
+            ps = profileSettingsComponent.createObject(terminalWindow)
+            ps.loadFromString(leafData.profileString)
+            if (leafData.profileIndex !== undefined)
+                ps.currentProfileIndex = leafData.profileIndex
+        } else {
+            ps = _createPaneProfile()
+        }
+        paneProfileSettings = ps
+        var props = {profileSettings: ps, _attachSessionId: leafData.sessionId || ""}
+        var t = terminalComponent.createObject(splitPaneRoot, props)
+        _rootPane()._connectTerminalToPane(t, splitPaneRoot)
+        terminal = t
+        isFocused = leafData.isFocused || false
+    }
+
     // Auto-create the initial terminal when instantiated as a leaf
     // (skipped for children created by split(), which manage their own terminals)
     Component.onCompleted: {
-        if (isLeaf && !terminal && !_skipAutoCreate) {
+        if (isLeaf && !terminal && !_skipAutoCreate && !terminalWindow._restoreMode) {
             paneProfileSettings = _createPaneProfile()
             // Pass profileSettings as initial property so it's set BEFORE
             // Component.onCompleted — the font handler connect() in
