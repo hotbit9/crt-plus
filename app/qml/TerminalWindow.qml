@@ -37,6 +37,7 @@ ApplicationWindow {
     property string defaultProfileString: ""
     property string initialWorkDir: ""
     property bool _restoreMode: false
+    property bool _closeFromAction: false
     property alias profileSettings: profileSettings
     readonly property int badgeCount: terminalTabs.totalBadgeCount
     readonly property int tabCount: terminalTabs.count
@@ -176,10 +177,10 @@ ApplicationWindow {
         onTriggered: appRoot.createWindow()
     }
     Action {
-        id: quitAction
-        text: qsTr("Quit")
+        id: closeWindowAction
+        text: qsTr("Close")
         shortcut: appSettings.isMacOS ? StandardKey.Close : "Ctrl+Shift+Q"
-        onTriggered: terminalWindow.close()
+        onTriggered: { _closeFromAction = true; terminalWindow.close() }
     }
     Action {
         id: showsettingsAction
@@ -294,12 +295,23 @@ ApplicationWindow {
         }
     }
     onClosing: function(close) {
-        close.accepted = false
-        // If split panes exist, close the focused pane instead of the window
-        var root = terminalTabs.currentRootSplitPane()
-        if (root && root.hasMultipleLeaves()) {
-            root.closeFocusedPane()
+        // App quitting (Cmd+Q / dock quit): accept close so Qt's
+        // tryCloseAllWindows() succeeds. markQuitting() already saved state.
+        if (appRoot._isQuitting) {
+            close.accepted = true
+            profileSettings.syncToAppSettings()
+            appRoot.closeWindow(terminalWindow)
             return
+        }
+        close.accepted = false
+        // Cmd+W (action-triggered): close focused pane if split, else close window
+        if (_closeFromAction) {
+            _closeFromAction = false
+            var root = terminalTabs.currentRootSplitPane()
+            if (root && root.hasMultipleLeaves()) {
+                root.closeFocusedPane()
+                return
+            }
         }
         profileSettings.syncToAppSettings()
         appRoot.closeWindow(terminalWindow)

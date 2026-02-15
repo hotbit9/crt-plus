@@ -114,7 +114,7 @@ Menu {
         }
         MenuSeparator {}
         MenuItem {
-            action: quitAction
+            action: closeWindowAction
         }
     }
     Menu {

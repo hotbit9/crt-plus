@@ -32,10 +32,8 @@
 #endif
 
 // App-level event filter for two purposes:
-// 1. QEvent::Quit: calls markQuitting() to set _isQuitting and save state.
-//    On macOS, Cmd+Q closes windows before this event fires, so the primary
-//    protection is that closeWindow() preserves sessions for the last window.
-//    markQuitting() is a secondary defense for multi-window Cmd+Q.
+// 1. QEvent::Quit: calls markQuitting() to set _isQuitting and save state
+//    before tryCloseAllWindows() fires onClosing on each window.
 // 2. QEvent::FileOpen (macOS): opens a new window when a folder is dragged
 //    onto the dock icon.
 class AppEventFilter : public QObject {
@@ -132,9 +130,9 @@ int main(int argc, char *argv[])
     setRegularApp();
 #endif
 
-    app.setApplicationName(QStringLiteral("crt-plus-dev"));
-    app.setOrganizationName(QStringLiteral("crt-plus-dev"));
-    app.setOrganizationDomain(QStringLiteral("crt-plus-dev"));
+    app.setApplicationName(QStringLiteral("crt-plus"));
+    app.setOrganizationName(QStringLiteral("crt-plus"));
+    app.setOrganizationDomain(QStringLiteral("crt-plus"));
     app.setApplicationVersion(appVersion);
 
     QQmlApplicationEngine engine;

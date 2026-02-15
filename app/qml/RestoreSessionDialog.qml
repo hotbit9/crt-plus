@@ -21,6 +21,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "Components"
 
 ApplicationWindow {
     id: restoreDialog
@@ -58,7 +59,7 @@ ApplicationWindow {
             Layout.fillWidth: true
         }
 
-        CheckBox {
+        StyledCheckBox {
             id: alwaysCheck
             text: "Always restore without asking"
         }

@@ -59,7 +59,7 @@ MenuBar {
             onTriggered: terminalTabs.resetWindowTitle()
         }
         MenuSeparator { }
-        MenuItem { action: quitAction }
+        MenuItem { action: closeWindowAction }
     }
     Menu {
         title: qsTr("Pane")
