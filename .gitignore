@@ -50,6 +50,10 @@ build
 
 *.AppImage
 
+# Daemon binary
+
+crt-sessiond
+
 # Mac OSX
 
 .DS_Store

@@ -36,6 +36,7 @@ ApplicationWindow {
 
     property string defaultProfileString: ""
     property string initialWorkDir: ""
+    property bool _restoreMode: false
     property alias profileSettings: profileSettings
     readonly property int badgeCount: terminalTabs.totalBadgeCount
     readonly property int tabCount: terminalTabs.count
@@ -59,6 +60,22 @@ ApplicationWindow {
 
     function resetWindowTitle() {
         terminalTabs.resetWindowTitle()
+    }
+
+    function destroyAllSessions() {
+        terminalTabs.destroyAllSessions()
+    }
+
+    function captureWindowState() {
+        var state = terminalTabs.captureState()
+        state.geometry = {"x": x, "y": y, "width": width, "height": height}
+        state.fullscreen = fullscreen
+        state.defaultProfileString = defaultProfileString
+        return state
+    }
+
+    function restoreTabs(tabs, activeTabIndex, windowTitle) {
+        terminalTabs.restoreTabs(tabs, activeTabIndex, windowTitle)
     }
 
     ProfileSettings {

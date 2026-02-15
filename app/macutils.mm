@@ -92,3 +92,4 @@ void registerServiceProvider(QObject *rootObject)
     [NSApp registerServicesMenuSendTypes:@[NSPasteboardTypeFileURL]
                              returnTypes:@[]];
 }
+

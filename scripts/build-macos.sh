@@ -5,9 +5,10 @@
 # plugin into the app bundle.
 #
 # Usage:
-#   ./scripts/build-macos.sh           # Build only
-#   ./scripts/build-macos.sh --install  # Build and copy to /Applications
-#   ./scripts/build-macos.sh --run      # Build, install, and launch
+#   ./scripts/build-macos.sh              # Build only
+#   ./scripts/build-macos.sh --run-local  # Build and launch from build dir
+#   ./scripts/build-macos.sh --install    # Build and copy to /Applications
+#   ./scripts/build-macos.sh --run        # Build, install, and launch
 #
 
 set -e
@@ -24,6 +25,7 @@ NCPU=$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
 # QML cache locations that can cause stale behavior
 QML_CACHES=(
     "$HOME/Library/Caches/crt-plus/crt-plus/qmlcache"
+    "$HOME/Library/Caches/crt-plus-dev/crt-plus-dev/qmlcache"
     "$HOME/Library/Caches/cool-retro-term/cool-retro-term/qmlcache"
 )
 
@@ -45,9 +47,32 @@ make -j"$NCPU"
 
 echo "==> Deploying QMLTermWidget plugin into app bundle"
 rm -rf "$PLUGIN_DST"
+mkdir -p "$(dirname "$PLUGIN_DST")"
 cp -R "$PLUGIN_SRC" "$PLUGIN_DST"
 
+# The app links directly against libqmltermwidget (for DaemonClient).
+# Point the binary at the SAME dylib the QML engine loads from PlugIns/
+# to avoid registering C++ types twice (which breaks QML type assignments).
+DYLIB_NAME="libqmltermwidget.dylib"
+install_name_tool -change "$DYLIB_NAME" \
+    "@executable_path/../PlugIns/QMLTermWidget/$DYLIB_NAME" \
+    "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
+
+# Deploy daemon binary into app bundle (DaemonLauncher looks in MacOS/)
+DAEMON_BIN="$PROJECT_DIR/crt-sessiond"
+if [ -f "$DAEMON_BIN" ]; then
+    # Kill stale daemon from previous build (binary changed, protocol may differ)
+    pkill -x crt-sessiond 2>/dev/null
+    cp "$DAEMON_BIN" "$APP_BUNDLE/Contents/MacOS/crt-sessiond"
+    echo "==> Deployed crt-sessiond into app bundle"
+fi
+
 echo "==> Build complete: $APP_BUNDLE"
+
+if [ "$1" = "--run-local" ]; then
+    echo "==> Launching CRT Plus from build directory"
+    open "$APP_BUNDLE"
+fi
 
 if [ "$1" = "--install" ] || [ "$1" = "--run" ]; then
     echo "==> Installing to $INSTALL_PATH"

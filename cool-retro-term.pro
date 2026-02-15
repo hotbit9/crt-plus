@@ -3,6 +3,7 @@ TEMPLATE = subdirs
 CONFIG += ordered
 
 SUBDIRS += qmltermwidget
+SUBDIRS += daemon
 SUBDIRS += app
 
 desktop.files += cool-retro-term.desktop

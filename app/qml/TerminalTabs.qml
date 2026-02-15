@@ -255,6 +255,34 @@ Item {
         loadTabProfile(0)
     }
 
+    // Explicitly DESTROY all daemon sessions across all tabs
+    function destroyAllSessions() {
+        for (var i = 0; i < tabsModel.count; i++) {
+            var rootPane = tabRepeater.itemAt(i)
+            if (rootPane) rootPane.destroyAllSessions()
+        }
+    }
+
+    // Capture full tab state for session persistence
+    function captureState() {
+        var tabs = []
+        for (var i = 0; i < tabsModel.count; i++) {
+            var entry = tabsModel.get(i)
+            var rootPane = tabRepeater.itemAt(i)
+            tabs.push({
+                "customTitle": entry.customTitle || "",
+                "profileString": entry.profileString || "",
+                "profileIndex": entry.profileIndex || 0,
+                "splitTree": rootPane ? rootPane.captureSplitTree() : null
+            })
+        }
+        return {
+            "activeTabIndex": currentIndex,
+            "customWindowTitle": customWindowTitle,
+            "tabs": tabs
+        }
+    }
+
     function closeTab(index) {
         if (tabsModel.count <= 1) {
             terminalWindow.close()
@@ -262,6 +290,10 @@ Item {
         }
 
         var wasCurrent = (index === tabBar.currentIndex)
+
+        // DESTROY daemon sessions for the closing tab
+        var rootPane = tabRepeater.itemAt(index)
+        if (rootPane) rootPane.destroyAllSessions()
 
         tabsModel.remove(index)
 
@@ -275,6 +307,53 @@ Item {
     }
 
     // Load a profile into the current tab's focused pane (used by context/window menu)
+    property var _pendingRestore: null
+
+    function restoreTabs(tabs, activeTabIndex, windowTitle) {
+        customWindowTitle = windowTitle || ""
+
+        // Stage 1: Append all tabs to the model (synchronous — Repeater creates items)
+        for (var i = 0; i < tabs.length; i++) {
+            var profile = tabs[i].profileString || defaultProfileString
+            tabsModel.append({
+                title: "", customTitle: tabs[i].customTitle || "",
+                currentDir: "", foregroundProcess: "", foregroundProcessLabel: "",
+                badgeCount: 0, initialWorkDir: "",
+                profileString: profile, profileIndex: tabs[i].profileIndex || 0
+            })
+        }
+
+        // Stage 2: Defer split tree restoration to next event loop (items exist now)
+        _pendingRestore = {tabs: tabs, activeTabIndex: activeTabIndex}
+        _restoreTimer.start()
+    }
+
+    Timer {
+        id: _restoreTimer
+        interval: 0; repeat: false
+        onTriggered: {
+            if (!_pendingRestore) return
+            var data = _pendingRestore
+            _pendingRestore = null
+
+            // Restore split trees for all tabs
+            for (var i = 0; i < data.tabs.length; i++) {
+                var splitTree = data.tabs[i].splitTree
+                if (splitTree) {
+                    var rootPane = tabRepeater.itemAt(i)
+                    if (rootPane) rootPane.restoreFromTree(splitTree)
+                }
+            }
+
+            // Stage 3: Finalize — set active tab, clear restore mode
+            if (data.activeTabIndex >= 0 && data.activeTabIndex < tabsModel.count)
+                tabBar.currentIndex = data.activeTabIndex
+            _previousIndex = tabBar.currentIndex
+            terminalWindow._restoreMode = false
+            loadTabProfile(tabBar.currentIndex)
+        }
+    }
+
     function loadProfileForCurrentTab(profileString) {
         _isLoadingTabProfile = true
         terminalWindow.profileSettings.loadFromString(profileString)
@@ -435,10 +514,14 @@ Item {
     Component.onCompleted: {
         terminalWindow.profileSettings.currentProfileIndex = appSettings.currentProfileIndex
         _initialWorkDir = terminalWindow.initialWorkDir
-        addTab()
-        _previousIndex = 0
-        _initialized = true
-        loadTabProfile(0)
+        if (!terminalWindow._restoreMode) {
+            addTab()
+            _previousIndex = 0
+            _initialized = true
+            loadTabProfile(0)
+        } else {
+            _initialized = true
+        }
     }
 
     ColumnLayout {

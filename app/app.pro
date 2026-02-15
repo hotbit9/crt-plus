@@ -1,4 +1,4 @@
-QT += qml quick widgets sql quickcontrols2
+QT += qml quick widgets sql quickcontrols2 network
 TARGET = crt-plus
 APP_VERSION = $$system(git -C \"$$PWD/..\" describe --tags --abbrev=0 2>/dev/null)
 isEmpty(APP_VERSION): APP_VERSION = "unknown"
@@ -6,15 +6,23 @@ DEFINES += APP_VERSION=\\\"$$APP_VERSION\\\"
 
 DESTDIR = $$OUT_PWD/../
 
+INCLUDEPATH += $$PWD/../qmltermwidget/lib
+INCLUDEPATH += $$PWD/../daemon
+LIBS += -L$$OUT_PWD/../qmltermwidget/QMLTermWidget -lqmltermwidget
+
 HEADERS += \
     fileio.h \
     fontmanager.h \
-    fontlistmodel.h
+    fontlistmodel.h \
+    daemonlauncher.h \
+    sessionmanagerbackend.h
 
 SOURCES += main.cpp \
     fileio.cpp \
     fontmanager.cpp \
-    fontlistmodel.cpp
+    fontlistmodel.cpp \
+    daemonlauncher.cpp \
+    sessionmanagerbackend.cpp
 
 macx {
     HEADERS += macutils.h badgehelper.h
@@ -23,6 +31,8 @@ macx {
     # Set display name to "CRT Plus" (Finder shows this instead of the binary name)
     QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Set :CFBundleDisplayName 'CRT Plus'\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" 2>/dev/null || /usr/libexec/PlistBuddy -c \"Add :CFBundleDisplayName string 'CRT Plus'\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" ;
     QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Set :CFBundleName 'CRT Plus'\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" 2>/dev/null || /usr/libexec/PlistBuddy -c \"Add :CFBundleName string 'CRT Plus'\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" ;
+    # Dev bundle identifier so it can run alongside the stable version
+    QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Set :CFBundleIdentifier com.crt-plus-dev\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" ;
     # Start as LSUIElement (no dock icon). Primary instance promotes itself to Regular.
     QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Add :LSUIElement bool true\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" 2>/dev/null || /usr/libexec/PlistBuddy -c \"Set :LSUIElement true\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" ;
     # Accept folder drops on dock icon (opens new window in that directory)

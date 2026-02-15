@@ -28,6 +28,7 @@ ShaderTerminal {
     property string shellCommand: ""    // Program to run instead of default shell
     property var shellArgs: []          // Arguments for shellCommand
     property string initialSendText: "" // Text sent after prompt detection
+    property string _attachSessionId: "" // Daemon session UUID to attach to (restore mode)
     property var _connectionToken: null  // Used by SplitPane to invalidate stale signal handlers
     signal openInSplitRequested(var termProps)
     property alias title: terminal.title
@@ -64,6 +65,7 @@ ShaderTerminal {
         shellCommand: mainShader.shellCommand
         shellArgs: mainShader.shellArgs
         initialSendText: mainShader.initialSendText
+        _attachSessionId: mainShader._attachSessionId
         anchors.fill: parent
         onSessionFinished: mainShader.sessionFinished()
         onForegroundProcessChanged: mainShader.foregroundProcessChanged()
@@ -76,6 +78,9 @@ ShaderTerminal {
     function activate() {
         terminal.mainTerminal.forceActiveFocus()
     }
+
+    function getDaemonSessionId() { return terminal.getDaemonSessionId() }
+    function closeSession() { terminal.closeSession() }
 
     //  EFFECTS  ////////////////////////////////////////////////////////////////
     Loader {
