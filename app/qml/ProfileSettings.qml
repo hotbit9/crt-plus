@@ -55,6 +55,13 @@ QtObject {
     property bool solidFrameColor: false  // Use frame color directly instead of mixing with font/background
     property bool flatFrame: false  // Flat solid color without 3D bevel shading
     property bool blinkingCursor: false
+    property real fontScaling: 1.0
+    property bool useCustomCommand: false
+    property string customCommand: ""
+    property string editorCommand: ""
+    property string remoteEditorCommand: ""
+    property string promptCharacters: "$, #, %, >"
+    readonly property real totalFontScaling: appSettings.baseFontScaling * fontScaling
     property int currentProfileIndex: -1
 
     // Font properties aliased to own FontManager
@@ -83,7 +90,7 @@ QtObject {
     property FontManager fontManager: FontManager {
         id: fontManager
         baseFontScaling: appSettings.baseFontScaling
-        fontScaling: appSettings.fontScaling
+        fontScaling: profileSettings.fontScaling
     }
 
     signal profileChanged()
@@ -127,7 +134,13 @@ QtObject {
             "frameColor": _frameColor,
             "frameShininess": _frameShininess,
             "solidFrameColor": solidFrameColor,
-            "flatFrame": flatFrame
+            "flatFrame": flatFrame,
+            "fontScaling": fontScaling,
+            "useCustomCommand": useCustomCommand,
+            "customCommand": customCommand,
+            "editorCommand": editorCommand,
+            "remoteEditorCommand": remoteEditorCommand,
+            "promptCharacters": promptCharacters
         }
         return profile
     }
@@ -171,6 +184,12 @@ QtObject {
         solidFrameColor = s.solidFrameColor !== undefined ? s.solidFrameColor : false
         flatFrame = s.flatFrame !== undefined ? s.flatFrame : false
         blinkingCursor = s.blinkingCursor !== undefined ? s.blinkingCursor : blinkingCursor
+        fontScaling = s.fontScaling !== undefined ? s.fontScaling : fontScaling
+        useCustomCommand = s.useCustomCommand !== undefined ? s.useCustomCommand : useCustomCommand
+        customCommand = s.customCommand !== undefined ? s.customCommand : customCommand
+        editorCommand = s.editorCommand !== undefined ? s.editorCommand : editorCommand
+        remoteEditorCommand = s.remoteEditorCommand !== undefined ? s.remoteEditorCommand : remoteEditorCommand
+        promptCharacters = s.promptCharacters !== undefined ? s.promptCharacters : promptCharacters
 
         profileChanged()
     }
@@ -209,6 +228,12 @@ QtObject {
         fontWidth = appSettings.fontWidth
         lineSpacing = appSettings.lineSpacing
         rasterization = appSettings.rasterization
+        fontScaling = appSettings.fontScaling
+        useCustomCommand = appSettings.useCustomCommand
+        customCommand = appSettings.customCommand
+        editorCommand = appSettings.editorCommand
+        remoteEditorCommand = appSettings.remoteEditorCommand
+        promptCharacters = appSettings.promptCharacters
         currentProfileIndex = appSettings.currentProfileIndex
 
         _syncing = false
@@ -249,6 +274,12 @@ QtObject {
         appSettings.fontWidth = fontWidth
         appSettings.lineSpacing = lineSpacing
         appSettings.rasterization = rasterization
+        appSettings.fontScaling = fontScaling
+        appSettings.useCustomCommand = useCustomCommand
+        appSettings.customCommand = customCommand
+        appSettings.editorCommand = editorCommand
+        appSettings.remoteEditorCommand = remoteEditorCommand
+        appSettings.promptCharacters = promptCharacters
         appSettings.currentProfileIndex = currentProfileIndex
 
         appSettings.profileChanged()

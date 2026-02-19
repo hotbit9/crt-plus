@@ -99,7 +99,7 @@ Item{
 
     //When settings are updated sources need to be redrawn.
     Connections {
-        target: appSettings
+        target: profileSettings
 
         onFontScalingChanged: {
             terminalContainer.updateSources()
@@ -256,8 +256,8 @@ Item{
                 // Retrieve the variable set in main.cpp if arguments are passed.
                 ksession.setShellProgram(defaultCmd);
                 ksession.setArgs(defaultCmdArgs);
-            } else if (appSettings.useCustomCommand) {
-                var args = Utils.tokenizeCommandLine(appSettings.customCommand);
+            } else if (profileSettings.useCustomCommand) {
+                var args = Utils.tokenizeCommandLine(profileSettings.customCommand);
                 ksession.setShellProgram(args[0]);
                 ksession.setArgs(args.slice(1));
             } else if (!defaultCmd) {
@@ -271,7 +271,7 @@ Item{
 
             // Queue text to send after the shell prompt appears (e.g. cd after SSH login)
             if (terminalContainer.initialSendText !== "")
-                ksession.sendTextOnceReady(terminalContainer.initialSendText, appSettings.promptCharacters)
+                ksession.sendTextOnceReady(terminalContainer.initialSendText, profileSettings.promptCharacters)
 
             // Enable daemon-backed persistent session
             ksession.persistentSession = true
@@ -290,7 +290,7 @@ Item{
         Component.onCompleted: {
             profileSettings.fontManager.terminalFontChanged.connect(handleFontChanged);
             profileSettings.fontManager.refresh()
-            kterminal.setFilePathEditorCommand(appSettings.editorCommand)
+            kterminal.setFilePathEditorCommand(profileSettings.editorCommand)
             startSession();
         }
         Component.onDestruction: {
@@ -494,8 +494,8 @@ Item{
         onCurrentDirChanged: kterminal.setFilePathWorkDir(terminalContainer.currentDir)
     }
     Connections {
-        target: appSettings
-        onEditorCommandChanged: kterminal.setFilePathEditorCommand(appSettings.editorCommand)
+        target: profileSettings
+        onEditorCommandChanged: kterminal.setFilePathEditorCommand(profileSettings.editorCommand)
     }
 
     function getDaemonSessionId() { return ksession.sessionId }
@@ -557,7 +557,7 @@ Item{
     function _buildSshEditorCommand(path, line, cwd) {
         var info = ksession.sshConnectionInfo()
         if (!info.host || info.host === "") return null
-        var editor = appSettings.remoteEditorCommand || "vim"
+        var editor = profileSettings.remoteEditorCommand || "vim"
         var remoteCmd = ""
         if (cwd && cwd !== "")
             remoteCmd = "cd " + _shellQuotePath(cwd) + " && "
@@ -600,7 +600,7 @@ Item{
         if (_isRemoteSession()) {
             var fi = _getFileInfo(x, y, pathText)
             if (!fi) return
-            var editor = appSettings.remoteEditorCommand || "vim"
+            var editor = profileSettings.remoteEditorCommand || "vim"
             ksession.sendText(editor + " +" + fi.line + " " + _shellQuotePath(fi.path) + "\n")
         } else {
             if (!kterminal.activateHotSpotAt(x, y, "click-action"))
@@ -618,10 +618,10 @@ Item{
             var cwd = fi.path.startsWith("/") ? "" : _getRemoteCwd()
             var cmd = _buildSshEditorCommand(fi.path, fi.line, cwd)
             if (cmd) { openInSplitRequested({ shellCommand: cmd.program, shellArgs: cmd.args, splitOrientation: splitDir }); return }
-            var editor = appSettings.remoteEditorCommand || "vim"
+            var editor = profileSettings.remoteEditorCommand || "vim"
             ksession.sendText(editor + " +" + fi.line + " " + _shellQuotePath(fi.path) + "\n")
         } else {
-            var localEditor = appSettings.remoteEditorCommand || "vim"
+            var localEditor = profileSettings.remoteEditorCommand || "vim"
             openInSplitRequested({ shellCommand: localEditor, shellArgs: ["+" + fi.line, fi.path], splitOrientation: splitDir })
         }
     }
@@ -676,7 +676,7 @@ Item{
             openInSplitRequested({ shellCommand: cmd.program, shellArgs: cmd.args, splitOrientation: Qt.Vertical })
             return
         }
-        var editor = appSettings.remoteEditorCommand || "vim"
+        var editor = profileSettings.remoteEditorCommand || "vim"
         ksession.sendText(editor + " +" + line + " " + _shellQuotePath(path) + "\n")
     }
 

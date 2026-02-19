@@ -417,8 +417,10 @@ Item {
             }
         }
 
-        if (appRoot.activeTerminalWindow === terminalWindow)
+        if (appRoot.activeTerminalWindow === terminalWindow) {
             terminalWindow.profileSettings.syncToAppSettings()
+            appSettings._profileSnapshot = appSettings.composeProfileString()
+        }
         _isLoadingTabProfile = false
     }
 

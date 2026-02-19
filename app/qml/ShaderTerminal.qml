@@ -98,8 +98,8 @@ Item {
         property real jitter: profileSettings.jitter
         property size jitterDisplacement: Qt.size(0.007 * jitter, 0.002 * jitter)
         property real staticNoise: profileSettings.staticNoise
-        property size scaleNoiseSize: Qt.size((width * 0.75) / (noiseTexture.width * appSettings.windowScaling * appSettings.totalFontScaling),
-                                              (height * 0.75) / (noiseTexture.height * appSettings.windowScaling * appSettings.totalFontScaling))
+        property size scaleNoiseSize: Qt.size((width * 0.75) / (noiseTexture.width * appSettings.windowScaling * profileSettings.totalFontScaling),
+                                              (height * 0.75) / (noiseTexture.height * appSettings.windowScaling * profileSettings.totalFontScaling))
 
         property size virtualResolution: parent.virtualResolution
 
@@ -180,7 +180,7 @@ Item {
 
         property real chromaColor: profileSettings.chromaColor;
 
-        property real rgbShift: profileSettings.rgbShift * (4.0 / width) * appSettings.totalFontScaling
+        property real rgbShift: profileSettings.rgbShift * (4.0 / width) * profileSettings.totalFontScaling
 
         property real screen_brightness: Utils.lint(0.5, 1.5, profileSettings.effectiveBrightness)
         property real frameShininess: profileSettings.frameShininess

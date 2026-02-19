@@ -159,6 +159,7 @@ RowLayout {
         Button {
             Layout.fillWidth: true
             enabled: selectedIndex >= 0
+                     && selectedIndex !== appSettings.currentProfileIndex
             text: qsTr("Apply")
             onClicked: appSettings.loadProfile(selectedIndex)
         }

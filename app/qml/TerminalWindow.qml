@@ -152,7 +152,10 @@ ApplicationWindow {
             "rgbShift", "brightness", "contrast", "highImpedance", "ambientLight",
             "windowOpacity", "_margin", "_frameSize", "_screenRadius",
             "_frameShininess", "solidFrameColor", "flatFrame", "blinkingCursor", "rasterization", "fontSource",
-            "fontName", "fontWidth", "lineSpacing", "currentProfileIndex"
+            "fontName", "fontWidth", "lineSpacing",
+            "fontScaling", "useCustomCommand", "customCommand",
+            "editorCommand", "remoteEditorCommand", "promptCharacters",
+            "currentProfileIndex"
         ]
         for (var i = 0; i < props.length; i++) {
             var sig = appSettings[props[i] + "Changed"]
