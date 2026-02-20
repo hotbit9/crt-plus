@@ -149,6 +149,44 @@ Flickable {
             }
         }
 
+        // CURSOR ///////////////////////////////////////////////////////////////
+        SectionHeader {
+            text: qsTr("Cursor")
+        }
+        ColumnLayout {
+            Layout.fillWidth: true
+            // Cursor shape radio buttons are disabled when a custom cursor
+            // character is set, because the character always renders as a
+            // filled block regardless of the shape setting.
+            RowLayout {
+                Layout.fillWidth: true
+                enabled: appSettings.cursorCharacter === ""
+                RadioButton {
+                    text: qsTr("Block")
+                    onClicked: appSettings.cursorShape = 0
+                    Binding on checked { value: appSettings.cursorShape === 0 }
+                    enabled: parent.enabled
+                }
+                RadioButton {
+                    text: qsTr("Underline")
+                    onClicked: appSettings.cursorShape = 1
+                    Binding on checked { value: appSettings.cursorShape === 1 }
+                    enabled: parent.enabled
+                }
+                RadioButton {
+                    text: qsTr("I-Beam")
+                    onClicked: appSettings.cursorShape = 2
+                    Binding on checked { value: appSettings.cursorShape === 2 }
+                    enabled: parent.enabled
+                }
+            }
+            StyledCheckBox {
+                text: qsTr("Blinking Cursor")
+                onCheckedChanged: appSettings.blinkingCursor = checked
+                Binding on checked { value: appSettings.blinkingCursor }
+            }
+        }
+
         // SHELL ////////////////////////////////////////////////////////////////
         SectionHeader {
             text: qsTr("Shell")
@@ -173,12 +211,6 @@ Flickable {
                 }
                 Component.onCompleted: settings_window.closing.connect(
                                            saveSetting)
-            }
-            StyledCheckBox {
-                id: blinkingCursor
-                text: qsTr("Blinking Cursor")
-                onCheckedChanged: appSettings.blinkingCursor = checked
-                Binding on checked { value: appSettings.blinkingCursor }
             }
             StyledCheckBox {
                 text: qsTr("Restore windows and tabs on launch")

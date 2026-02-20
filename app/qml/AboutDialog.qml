@@ -27,6 +27,17 @@ ApplicationWindow {
     title: qsTr("About")
     width: 600
     height: 400
+    onVisibleChanged: if (!visible) appRoot.aboutOwnerWindow = null
+
+    // When about becomes active, raise the owner terminal behind us so it
+    // stays undimmed (its dim overlay checks aboutOwnerWindow), then re-raise
+    // about to keep it on top.
+    onActiveChanged: {
+        if (active && appRoot.aboutOwnerWindow) {
+            appRoot.aboutOwnerWindow.raise()
+            dialogwindow.raise()
+        }
+    }
 
     ColumnLayout {
         anchors.fill: parent

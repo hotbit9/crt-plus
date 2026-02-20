@@ -151,7 +151,8 @@ ApplicationWindow {
             "screenCurvature", "glowingLine", "burnIn", "bloom", "jitter",
             "rgbShift", "brightness", "contrast", "highImpedance", "ambientLight",
             "windowOpacity", "_margin", "_frameSize", "_screenRadius",
-            "_frameShininess", "solidFrameColor", "flatFrame", "blinkingCursor", "rasterization", "fontSource",
+            "_frameShininess", "solidFrameColor", "flatFrame", "blinkingCursor",
+            "cursorShape", "cursorCharacter", "rasterization", "fontSource",
             "fontName", "fontWidth", "lineSpacing",
             "fontScaling", "useCustomCommand", "customCommand",
             "editorCommand", "remoteEditorCommand", "promptCharacters",
@@ -196,6 +197,7 @@ ApplicationWindow {
         text: qsTr("Settings")
         shortcut: "Meta+,"
         onTriggered: {
+            appRoot.settingsOwnerWindow = terminalWindow
             settingsWindow.show()
             settingsWindow.requestActivate()
             settingsWindow.raise()
@@ -227,6 +229,7 @@ ApplicationWindow {
         id: showAboutAction
         text: qsTr("About")
         onTriggered: {
+            appRoot.aboutOwnerWindow = terminalWindow
             aboutDialog.show()
             aboutDialog.requestActivate()
             aboutDialog.raise()
@@ -294,6 +297,18 @@ ApplicationWindow {
         width: parent.width
         height: (parent.height + Math.abs(y))
         defaultProfileString: terminalWindow.defaultProfileString
+    }
+    // Dim terminal when window loses focus (lighter than split pane dimming).
+    // enabled:false ensures clicks pass through to activate AND reach the terminal.
+    Rectangle {
+        anchors.fill: terminalTabs
+        color: "black"
+        opacity: 0.35
+        z: 100
+        visible: !terminalWindow.active
+                 && !(settingsWindow.active && appRoot.settingsOwnerWindow === terminalWindow)
+                 && !(aboutDialog.active && appRoot.aboutOwnerWindow === terminalWindow)
+        enabled: false
     }
     Loader {
         anchors.centerIn: parent

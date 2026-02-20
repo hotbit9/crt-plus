@@ -26,6 +26,8 @@ QtObject {
 
     property var windows: []
     property var activeTerminalWindow: null
+    property var settingsOwnerWindow: null
+    property var aboutOwnerWindow: null
     property real _launchTime: Date.now()
     property bool _isQuitting: false
 

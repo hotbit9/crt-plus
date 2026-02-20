@@ -29,6 +29,18 @@ ApplicationWindow {
     width: 640
     height: 720
 
+    onVisibleChanged: if (!visible) appRoot.settingsOwnerWindow = null
+
+    // When settings becomes active, raise the owner terminal behind us so it
+    // stays undimmed (its dim overlay checks settingsOwnerWindow), then re-raise
+    // settings to keep it on top.
+    onActiveChanged: {
+        if (active && appRoot.settingsOwnerWindow) {
+            appRoot.settingsOwnerWindow.raise()
+            settings_window.raise()
+        }
+    }
+
     property int currentTab: 0
 
     readonly property var tabModel: [

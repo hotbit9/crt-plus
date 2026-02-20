@@ -40,6 +40,11 @@ Item{
     signal activityDetected()
     signal openInSplitRequested(var termProps) // Emitted to open a new split pane with given properties
 
+    // Tracks whether a DECSCUSR escape sequence has overridden the profile cursor.
+    // Reset when the foreground process returns to the shell.
+    property bool _cursorOverridden: false
+    readonly property var _shellNames: ["zsh", "bash", "fish", "sh", "dash", "ksh", "tcsh", "csh"]
+
     property size virtualResolution: Qt.size(kterminal.totalWidth, kterminal.totalHeight)
     property alias mainTerminal: kterminal
 
@@ -68,6 +73,14 @@ Item{
             var fg = ksession.foregroundProcessName
             var label = ksession.foregroundProcessLabel
             if (fg !== "" && fg !== terminalContainer.foregroundProcessName) {
+                // Restore profile cursor settings when returning to the shell
+                // after a DECSCUSR override from an app (e.g. vim, nvim).
+                if (terminalContainer._cursorOverridden
+                        && terminalContainer._shellNames.indexOf(fg) !== -1) {
+                    kterminal.keyboardCursorShape = profileSettings.cursorShape
+                    kterminal.blinkingCursor = profileSettings.blinkingCursor
+                    terminalContainer._cursorOverridden = false
+                }
                 terminalContainer.foregroundProcessName = fg
                 terminalContainer.foregroundProcessLabel = label
                 terminalContainer.foregroundProcessChanged()
@@ -167,6 +180,8 @@ Item{
 
         fullCursorHeight: true
         blinkingCursor: profileSettings.blinkingCursor
+        keyboardCursorShape: profileSettings.cursorShape
+        cursorCharacter: profileSettings.cursorCharacter
 
         colorScheme: "cool-retro-term"
 
@@ -178,6 +193,19 @@ Item{
             }
             onBellRequest: terminalContainer.bellRequested()
             onActivity: terminalContainer.activityDetected()
+            // DECSCUSR: app-requested cursor shape override.
+            // Shape 0 means "reset to default" (restore profile settings).
+            onCursorShapeRequest: function(shape, blinking) {
+                if (shape === 0) {
+                    // DECSCUSR(0): reset to profile defaults
+                    kterminal.keyboardCursorShape = profileSettings.cursorShape
+                    kterminal.blinkingCursor = profileSettings.blinkingCursor
+                } else {
+                    terminalContainer._cursorOverridden = true
+                    kterminal.keyboardCursorShape = shape
+                    kterminal.blinkingCursor = blinking
+                }
+            }
         }
 
         QMLTermScrollbar {

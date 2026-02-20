@@ -55,6 +55,8 @@ QtObject {
     property bool solidFrameColor: false  // Use frame color directly instead of mixing with font/background
     property bool flatFrame: false  // Flat solid color without 3D bevel shading
     property bool blinkingCursor: false
+    property int cursorShape: 0
+    property string cursorCharacter: ""
     property real fontScaling: 1.0
     property bool useCustomCommand: false
     property string customCommand: ""
@@ -129,6 +131,8 @@ QtObject {
             "lineSpacing": lineSpacing,
             "margin": _margin,
             "blinkingCursor": blinkingCursor,
+            "cursorShape": cursorShape,
+            "cursorCharacter": cursorCharacter,
             "frameSize": _frameSize,
             "screenRadius": _screenRadius,
             "frameColor": _frameColor,
@@ -184,6 +188,8 @@ QtObject {
         solidFrameColor = s.solidFrameColor !== undefined ? s.solidFrameColor : false
         flatFrame = s.flatFrame !== undefined ? s.flatFrame : false
         blinkingCursor = s.blinkingCursor !== undefined ? s.blinkingCursor : blinkingCursor
+        cursorShape = s.cursorShape !== undefined ? s.cursorShape : 0
+        cursorCharacter = s.cursorCharacter !== undefined ? s.cursorCharacter : ""
         fontScaling = s.fontScaling !== undefined ? s.fontScaling : fontScaling
         useCustomCommand = s.useCustomCommand !== undefined ? s.useCustomCommand : useCustomCommand
         customCommand = s.customCommand !== undefined ? s.customCommand : customCommand
@@ -223,6 +229,8 @@ QtObject {
         solidFrameColor = appSettings.solidFrameColor
         flatFrame = appSettings.flatFrame
         blinkingCursor = appSettings.blinkingCursor
+        cursorShape = appSettings.cursorShape
+        cursorCharacter = appSettings.cursorCharacter
         fontSource = appSettings.fontSource
         fontName = appSettings.fontName
         fontWidth = appSettings.fontWidth
@@ -269,6 +277,8 @@ QtObject {
         appSettings.solidFrameColor = solidFrameColor
         appSettings.flatFrame = flatFrame
         appSettings.blinkingCursor = blinkingCursor
+        appSettings.cursorShape = cursorShape
+        appSettings.cursorCharacter = cursorCharacter
         appSettings.fontSource = fontSource
         appSettings.fontName = fontName
         appSettings.fontWidth = fontWidth
