@@ -1,0 +1,113 @@
+/*******************************************************************************
+* Copyright (c) 2013-2021 "Filippo Scognamiglio"
+* https://github.com/Swordfish90/cool-retro-term
+*
+* This file is part of cool-retro-term.
+*
+* cool-retro-term is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*******************************************************************************/
+import QtQuick 2.2
+import Qt5Compat.GraphicalEffects
+
+import "utils.js" as Utils
+
+ShaderTerminal {
+    property string initialWorkDir: ""
+    // Split pane properties — passed via createObject() initial properties
+    property string shellCommand: ""    // Program to run instead of default shell
+    property var shellArgs: []          // Arguments for shellCommand
+    property string initialSendText: "" // Text sent after prompt detection
+    property string _attachSessionId: "" // Daemon session UUID to attach to (restore mode)
+    property var _connectionToken: null  // Used by SplitPane to invalidate stale signal handlers
+    signal openInSplitRequested(var termProps)
+    property alias title: terminal.title
+    property alias currentDir: terminal.currentDir
+    property alias foregroundProcessName: terminal.foregroundProcessName
+    property alias foregroundProcessLabel: terminal.foregroundProcessLabel
+    property alias terminalSize: terminal.terminalSize
+    signal sessionFinished()
+    signal foregroundProcessChanged()
+    signal activated()
+    signal bellRequested()
+    signal activityDetected()
+
+    profileSettings: terminalWindow.profileSettings
+
+    property bool loadBloomEffect: profileSettings.bloom > 0 || profileSettings._frameShininess > 0
+
+    id: mainShader
+    opacity: profileSettings.windowOpacity * 0.3 + 0.7
+
+    source: terminal.mainSource
+    burnInEffect: terminal.burnInEffect
+    virtualResolution: terminal.virtualResolution
+    screenResolution: Qt.size(
+        mainShader.width * Screen.devicePixelRatio * appSettings.windowScaling,
+        mainShader.height * Screen.devicePixelRatio * appSettings.windowScaling
+    )
+    bloomSource: bloomSourceLoader.item
+
+    PreprocessedTerminal {
+        id: terminal
+        profileSettings: mainShader.profileSettings
+        initialWorkDir: mainShader.initialWorkDir
+        shellCommand: mainShader.shellCommand
+        shellArgs: mainShader.shellArgs
+        initialSendText: mainShader.initialSendText
+        _attachSessionId: mainShader._attachSessionId
+        anchors.fill: parent
+        onSessionFinished: mainShader.sessionFinished()
+        onForegroundProcessChanged: mainShader.foregroundProcessChanged()
+        onActivated: mainShader.activated()
+        onBellRequested: mainShader.bellRequested()
+        onActivityDetected: mainShader.activityDetected()
+        onOpenInSplitRequested: function(termProps) { mainShader.openInSplitRequested(termProps) }
+    }
+
+    function activate() {
+        terminal.mainTerminal.forceActiveFocus()
+    }
+
+    function getDaemonSessionId() { return terminal.getDaemonSessionId() }
+    function hasActiveProcess() { return terminal.hasActiveProcess() }
+    function closeSession() { terminal.closeSession() }
+
+    //  EFFECTS  ////////////////////////////////////////////////////////////////
+    Loader {
+        id: bloomEffectLoader
+        active: loadBloomEffect
+        asynchronous: true
+        width: parent.width * appSettings.bloomQuality
+        height: parent.height * appSettings.bloomQuality
+
+        sourceComponent: FastBlur {
+            radius: Utils.lint(16, 64, appSettings.bloomQuality)
+            source: terminal.mainSource
+            transparentBorder: true
+        }
+    }
+    Loader {
+        id: bloomSourceLoader
+        active: loadBloomEffect
+        asynchronous: true
+        sourceComponent: ShaderEffectSource {
+            id: _bloomEffectSource
+            sourceItem: bloomEffectLoader.item
+            wrapMode: ShaderEffectSource.Repeat
+            hideSource: true
+            smooth: true
+            visible: false
+        }
+    }
+}

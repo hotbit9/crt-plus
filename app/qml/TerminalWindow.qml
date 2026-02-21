@@ -1,0 +1,325 @@
+/*******************************************************************************
+* Copyright (c) 2013-2021 "Filippo Scognamiglio"
+* https://github.com/Swordfish90/cool-retro-term
+*
+* This file is part of cool-retro-term.
+*
+* cool-retro-term is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*******************************************************************************/
+import QtQuick 2.2
+import QtQuick.Window 2.1
+import QtQuick.Controls 2.3
+
+import "menus"
+
+ApplicationWindow {
+    id: terminalWindow
+
+    width: 1024
+    height: 768
+
+    minimumWidth: 320
+    minimumHeight: 240
+
+    visible: false
+
+    property string defaultProfileString: ""
+    property string initialWorkDir: ""
+    property bool _restoreMode: false
+    property bool _wasRestored: false
+    property bool _closeFromAction: false
+    property alias profileSettings: profileSettings
+    readonly property int badgeCount: terminalTabs.totalBadgeCount
+    readonly property int tabCount: terminalTabs.count
+    readonly property string customWindowTitle: terminalTabs.customWindowTitle
+
+    function addTabWithWorkDir(workDir) {
+        terminalTabs.addTabWithWorkDir(workDir)
+    }
+
+    function replaceFirstTab(workDir) {
+        terminalTabs.replaceFirstTab(workDir)
+    }
+
+    function splitFocusedPane(orientation) {
+        _splitGuarded(orientation)
+    }
+
+    function renameWindow() {
+        terminalTabs.openRenameWindowDialog()
+    }
+
+    function resetWindowTitle() {
+        terminalTabs.resetWindowTitle()
+    }
+
+    function destroyAllSessions() {
+        terminalTabs.destroyAllSessions()
+    }
+
+    function isWorthSaving() {
+        if (_wasRestored) return true
+        return terminalTabs.isWorthSaving()
+    }
+
+    function captureWindowState() {
+        var state = terminalTabs.captureState()
+        state.geometry = {"x": x, "y": y, "width": width, "height": height}
+        state.fullscreen = fullscreen
+        state.defaultProfileString = defaultProfileString
+        return state
+    }
+
+    function restoreTabs(tabs, activeTabIndex, windowTitle) {
+        terminalTabs.restoreTabs(tabs, activeTabIndex, windowTitle)
+    }
+
+    ProfileSettings {
+        id: profileSettings
+    }
+
+    property bool fullscreen: false
+    onFullscreenChanged: visibility = (fullscreen ? Window.FullScreen : Window.Windowed)
+
+    menuBar: WindowMenu { }
+
+    // Guard against Qt6 shortcut bug: Meta+Shift+D triggers both Meta+Shift+D
+    // and Meta+D, causing double splits from a single keypress.
+    property real _lastSplitTime: 0
+    function _splitGuarded(orientation) {
+        var now = Date.now()
+        if (now - _lastSplitTime < 300) return
+        _lastSplitTime = now
+        var root = terminalTabs.currentRootSplitPane()
+        if (root) {
+            var leaf = root.focusedLeaf()
+            if (leaf) leaf.split(orientation)
+        }
+    }
+
+    property real normalizedWindowScale: 1024 / ((0.5 * width + 0.5 * height))
+
+    color: "#00000000"
+
+    title: (badgeCount > 0 ? "\u25CF " : "") + terminalTabs.currentTitle
+
+    onActiveChanged: {
+        if (!terminalTabs._initialized) return
+        if (active) {
+            appRoot.activeTerminalWindow = terminalWindow
+            terminalTabs.loadTabProfile(terminalTabs.currentIndex)
+            // Clear badge on the focused pane when window becomes active
+            var root = terminalTabs.currentRootSplitPane()
+            if (root) {
+                var leaf = root.focusedLeaf()
+                if (leaf && leaf.paneBadgeCount > 0) {
+                    leaf.paneBadgeCount = 0
+                    root.badgeCountChanged()
+                }
+            }
+        } else {
+            terminalTabs.saveCurrentTabProfile(terminalTabs.currentIndex)
+        }
+    }
+
+    Timer {
+        id: _appSettingsSyncTimer
+        interval: 0
+        onTriggered: {
+            if (appRoot.activeTerminalWindow === terminalWindow && !profileSettings._syncing) {
+                profileSettings.syncFromAppSettings()
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        var scheduleSync = function() { _appSettingsSyncTimer.restart() }
+        var props = [
+            "_backgroundColor", "_fontColor", "_frameColor", "flickering",
+            "horizontalSync", "staticNoise", "chromaColor", "saturationColor",
+            "screenCurvature", "glowingLine", "burnIn", "bloom", "jitter",
+            "rgbShift", "brightness", "contrast", "highImpedance", "ambientLight",
+            "windowOpacity", "_margin", "_frameSize", "_screenRadius",
+            "_frameShininess", "solidFrameColor", "flatFrame", "blinkingCursor", "rasterization", "fontSource",
+            "fontName", "fontWidth", "lineSpacing", "currentProfileIndex"
+        ]
+        for (var i = 0; i < props.length; i++) {
+            var sig = appSettings[props[i] + "Changed"]
+            if (sig) sig.connect(scheduleSync)
+        }
+        appSettings.profileChanged.connect(scheduleSync)
+    }
+
+    Action {
+        id: fullscreenAction
+        text: qsTr("Fullscreen")
+        enabled: false
+        shortcut: StandardKey.FullScreen
+        onTriggered: fullscreen = !fullscreen
+        checkable: true
+        checked: fullscreen
+    }
+    Action {
+        id: minimizeAction
+        text: qsTr("Minimize")
+        shortcut: "Meta+M"
+        onTriggered: terminalWindow.showMinimized()
+    }
+    Action {
+        id: newWindowAction
+        text: qsTr("New Window")
+        shortcut: "Meta+N"
+        onTriggered: appRoot.createWindow()
+    }
+    Action {
+        id: closeWindowAction
+        text: qsTr("Close")
+        shortcut: StandardKey.Close
+        onTriggered: { _closeFromAction = true; terminalWindow.close() }
+    }
+    Action {
+        id: showsettingsAction
+        text: qsTr("Settings")
+        shortcut: "Meta+,"
+        onTriggered: {
+            settingsWindow.show()
+            settingsWindow.requestActivate()
+            settingsWindow.raise()
+        }
+    }
+    Action {
+        id: copyAction
+        text: qsTr("Copy")
+        shortcut: StandardKey.Copy
+    }
+    Action {
+        id: pasteAction
+        text: qsTr("Paste")
+        shortcut: StandardKey.Paste
+    }
+    Action {
+        id: zoomIn
+        text: qsTr("Zoom In")
+        shortcut: StandardKey.ZoomIn
+        onTriggered: appSettings.incrementScaling()
+    }
+    Action {
+        id: zoomOut
+        text: qsTr("Zoom Out")
+        shortcut: StandardKey.ZoomOut
+        onTriggered: appSettings.decrementScaling()
+    }
+    Action {
+        id: showAboutAction
+        text: qsTr("About")
+        onTriggered: {
+            aboutDialog.show()
+            aboutDialog.requestActivate()
+            aboutDialog.raise()
+        }
+    }
+    Action {
+        id: newTabAction
+        text: qsTr("New Tab")
+        shortcut: StandardKey.AddTab
+        onTriggered: terminalTabs.addTab()
+    }
+    Action {
+        id: renameTabAction
+        text: qsTr("Rename Tab…")
+        shortcut: "Meta+R"
+        onTriggered: terminalTabs.openRenameDialog(terminalTabs.currentIndex)
+    }
+    Action {
+        id: renameWindowAction
+        text: qsTr("Rename Window…")
+        enabled: terminalTabs.count > 1
+        onTriggered: terminalTabs.openRenameWindowDialog()
+    }
+    Action {
+        id: splitHorizontalAction
+        text: qsTr("Split Right")
+        shortcut: "Meta+D"
+        onTriggered: _splitGuarded(Qt.Horizontal)
+    }
+    Action {
+        id: splitVerticalAction
+        text: qsTr("Split Down")
+        shortcut: "Meta+Shift+D"
+        onTriggered: _splitGuarded(Qt.Vertical)
+    }
+    Action {
+        id: nextPaneAction
+        text: qsTr("Next Pane")
+        shortcut: "Meta+]"
+        onTriggered: {
+            var root = terminalTabs.currentRootSplitPane()
+            if (root) root.focusNext()
+        }
+    }
+    Action {
+        id: previousPaneAction
+        text: qsTr("Previous Pane")
+        shortcut: "Meta+["
+        onTriggered: {
+            var root = terminalTabs.currentRootSplitPane()
+            if (root) root.focusPrevious()
+        }
+    }
+    Action {
+        id: closePaneAction
+        text: qsTr("Close Pane")
+        shortcut: "Meta+Shift+W"
+        onTriggered: {
+            var root = terminalTabs.currentRootSplitPane()
+            if (root) root.closeFocusedPane()
+        }
+    }
+    TerminalTabs {
+        id: terminalTabs
+        width: parent.width
+        height: (parent.height + Math.abs(y))
+        defaultProfileString: terminalWindow.defaultProfileString
+    }
+    Loader {
+        anchors.centerIn: parent
+        active: appSettings.showTerminalSize
+        sourceComponent: SizeOverlay {
+            z: 3
+            terminalSize: terminalTabs.terminalSize
+        }
+    }
+    onClosing: function(close) {
+        // App quitting (Cmd+Q / dock quit): accept close so Qt's
+        // tryCloseAllWindows() succeeds. markQuitting() already saved state.
+        if (appRoot._isQuitting) {
+            close.accepted = true
+            profileSettings.syncToAppSettings()
+            appRoot.closeWindow(terminalWindow)
+            return
+        }
+        close.accepted = false
+        // Cmd+W (action-triggered): close focused pane if split, else close window
+        if (_closeFromAction) {
+            _closeFromAction = false
+            var root = terminalTabs.currentRootSplitPane()
+            if (root && root.hasMultipleLeaves()) {
+                root.closeFocusedPane()
+                return
+            }
+        }
+        profileSettings.syncToAppSettings()
+        appRoot.closeWindow(terminalWindow)
+    }
+}

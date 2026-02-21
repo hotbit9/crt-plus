@@ -1,0 +1,60 @@
+/*******************************************************************************
+* Copyright (c) 2013-2021 "Filippo Scognamiglio"
+* https://github.com/Swordfish90/cool-retro-term
+*
+* This file is part of cool-retro-term.
+*
+* cool-retro-term is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*******************************************************************************/
+import QtQuick 2.0
+
+import "utils.js" as Utils
+
+ShaderEffect {
+    property QtObject profileSettings
+
+    property color _staticFrameColor: Utils.sum(profileSettings.frameColor, Qt.rgba(0.1, 0.1, 0.1, 1.0))
+    property color _backgroundColor: profileSettings.backgroundColor
+    property color _fontColor: profileSettings.fontColor
+    property color _lightColor: Utils.mix(_fontColor, _backgroundColor, 0.2)
+
+    // Solid mode uses the frame color directly; classic mode mixes with font/background
+    property color frameColor: profileSettings.solidFrameColor
+        ? profileSettings.frameColor
+        : Utils.mix(
+            Utils.scaleColor(_lightColor, 0.2),
+            _staticFrameColor,
+            0.125 + 0.750 * ambientLight
+        )
+
+    property real screenCurvature: profileSettings.screenCurvature * appSettings.screenCurvatureSize * terminalWindow.normalizedWindowScale
+
+    property real frameShininess: profileSettings.frameShininess
+
+    property real frameSize: profileSettings.frameSize * terminalWindow.normalizedWindowScale
+
+    property real screenRadius: profileSettings.screenRadius
+
+    property size viewportSize: Qt.size(width / appSettings.windowScaling, height / appSettings.windowScaling)
+
+    property real ambientLight: profileSettings.ambientLight
+
+    // 1.0 = flat solid color, 0.0 = classic 3D bevel
+    property real flatFrame: profileSettings.flatFrame ? 1.0 : 0.0
+
+    vertexShader: "qrc:/shaders/terminal_frame.vert.qsb"
+    fragmentShader: "qrc:/shaders/terminal_frame.frag.qsb"
+
+    onStatusChanged: if (log) console.log(log) //Print warning messages
+}
