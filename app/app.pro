@@ -26,8 +26,8 @@ SOURCES += main.cpp \
     daemonlauncher.cpp \
     sessionmanagerbackend.cpp
 
-HEADERS += macutils.h badgehelper.h
-OBJECTIVE_SOURCES += macutils.mm
+HEADERS += macutils.h badgehelper.h sfsymbolprovider.h
+OBJECTIVE_SOURCES += macutils.mm sfsymbolprovider.mm
 LIBS += -framework AppKit
 # Set display name to "CRT Plus" (Finder shows this instead of the binary name)
 QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Set :CFBundleDisplayName 'CRT Plus'\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" 2>/dev/null || /usr/libexec/PlistBuddy -c \"Add :CFBundleDisplayName string 'CRT Plus'\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" ;

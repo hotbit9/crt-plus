@@ -169,8 +169,7 @@ Item {
         var item = tabButtonRepeater.itemAt(sourceIndex)
         _dragTabWidth = item ? item.width : 100
         var entry = tabsModel.get(sourceIndex)
-        _dragTabTitle = (entry.badgeCount > 0 ? "\u25CF " : "")
-            + displayTitle(entry.customTitle, entry.title, entry.currentDir,
+        _dragTabTitle = displayTitle(entry.customTitle, entry.title, entry.currentDir,
                            entry.foregroundProcess, entry.foregroundProcessLabel)
         tabBar.currentIndex = sourceIndex
         _dragAnimating = true
@@ -315,7 +314,7 @@ Item {
         }
     }
 
-    // Load a profile into the current tab's focused pane (used by context/window menu)
+    // Deferred split-tree data for session restore (consumed by _restoreTimer)
     property var _pendingRestore: null
 
     function restoreTabs(tabs, activeTabIndex, windowTitle) {
@@ -548,14 +547,14 @@ Item {
         Item {
             id: tabRow
             Layout.fillWidth: true
-            Layout.preferredHeight: rowLayout.implicitHeight + 10
+            Layout.preferredHeight: rowLayout.implicitHeight + 6
             visible: tabsModel.count > 1
 
             RowLayout {
                 id: rowLayout
                 anchors.fill: parent
-                anchors.topMargin: 5
-                anchors.bottomMargin: 5
+                anchors.topMargin: 3
+                anchors.bottomMargin: 3
                 anchors.leftMargin: 8
                 anchors.rightMargin: 8
                 spacing: 6
@@ -577,36 +576,36 @@ Item {
                         spacing: 0
                         background: Item {}
 
-                    onCurrentIndexChanged: {
-                        if (!tabsRoot._initialized) return
-                        // Skip profile save/load during drag reorder —
-                        // tabsModel.move() triggers intermediate index changes.
-                        if (tabsRoot._dragActive) return
+                        onCurrentIndexChanged: {
+                            if (!tabsRoot._initialized) return
+                            // Skip profile save/load during drag reorder —
+                            // tabsModel.move() triggers intermediate index changes.
+                            if (tabsRoot._dragActive) return
 
-                        // Save outgoing tab's profile
-                        if (tabsRoot._previousIndex >= 0
-                            && tabsRoot._previousIndex < tabsModel.count
-                            && tabsRoot._previousIndex !== currentIndex) {
-                            tabsRoot.saveCurrentTabProfile(tabsRoot._previousIndex)
-                        }
-
-                        // Load incoming tab's profile
-                        if (currentIndex >= 0 && currentIndex < tabsModel.count) {
-                            tabsRoot.loadTabProfile(currentIndex)
-                        }
-
-                        // Clear badge on the newly selected tab
-                        var root = tabRepeater.itemAt(currentIndex)
-                        if (root) {
-                            var leaf = root.focusedLeaf()
-                            if (leaf && leaf.paneBadgeCount > 0) {
-                                leaf.paneBadgeCount = 0
-                                root.badgeCountChanged()
+                            // Save outgoing tab's profile
+                            if (tabsRoot._previousIndex >= 0
+                                && tabsRoot._previousIndex < tabsModel.count
+                                && tabsRoot._previousIndex !== currentIndex) {
+                                tabsRoot.saveCurrentTabProfile(tabsRoot._previousIndex)
                             }
-                        }
 
-                        tabsRoot._previousIndex = currentIndex
-                    }
+                            // Load incoming tab's profile
+                            if (currentIndex >= 0 && currentIndex < tabsModel.count) {
+                                tabsRoot.loadTabProfile(currentIndex)
+                            }
+
+                            // Clear badge on the newly selected tab
+                            var root = tabRepeater.itemAt(currentIndex)
+                            if (root) {
+                                var leaf = root.focusedLeaf()
+                                if (leaf && leaf.paneBadgeCount > 0) {
+                                    leaf.paneBadgeCount = 0
+                                    root.badgeCountChanged()
+                                }
+                            }
+
+                            tabsRoot._previousIndex = currentIndex
+                        }
 
                     Repeater {
                         id: tabButtonRepeater
@@ -639,12 +638,10 @@ Item {
                                     NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
                                 }
                             }
-                            topPadding: 6
-                            bottomPadding: 6
-                            leftPadding: 12
-                            rightPadding: 4
-                            // Pill background inset via margins so it never
-                            // touches the tabContainer's clip boundary.
+                            topPadding: 4
+                            bottomPadding: 4
+                            leftPadding: 4
+                            rightPadding: 12
                             background: Item {
                                 Rectangle {
                                     anchors.fill: parent
@@ -661,8 +658,30 @@ Item {
                             contentItem: RowLayout {
                                 spacing: 4
 
+                                ToolButton {
+                                    id: closeBtn
+                                    focusPolicy: Qt.NoFocus
+                                    implicitWidth: 20
+                                    implicitHeight: 20
+                                    padding: 0
+                                    hoverEnabled: true
+                                    Layout.alignment: Qt.AlignVCenter
+                                    background: Rectangle {
+                                        radius: width / 2
+                                        color: tabDragArea._hoveringClose
+                                            ? Qt.rgba(tabsRoot._tabTextColor.r, tabsRoot._tabTextColor.g, tabsRoot._tabTextColor.b, 0.15)
+                                            : "transparent"
+                                    }
+                                    contentItem: Label {
+                                        text: "\u00d7"
+                                        color: tabDragArea._hoveringClose ? tabsRoot._tabTextColor : tabsRoot._tabCloseColor
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+                                }
+
                                 Label {
-                                    text: (model.badgeCount > 0 ? "\u25CF " : "") + tabsRoot.displayTitle(model.customTitle, model.title, model.currentDir, model.foregroundProcess, model.foregroundProcessLabel)
+                                    text: tabsRoot.displayTitle(model.customTitle, model.title, model.currentDir, model.foregroundProcess, model.foregroundProcessLabel)
                                     elide: Text.ElideRight
                                     horizontalAlignment: Text.AlignHCenter
                                     Layout.fillWidth: true
@@ -670,20 +689,15 @@ Item {
                                     color: tabsRoot._tabTextColor
                                 }
 
-                                ToolButton {
-                                    id: closeBtn
-                                    focusPolicy: Qt.NoFocus
-                                    implicitWidth: 20
-                                    implicitHeight: 20
-                                    padding: 0
-                                    background: Item {}
+                                // Bell badge indicator (right side, SF Symbol)
+                                Image {
+                                    visible: model.badgeCount > 0
+                                    source: visible ? "image://sfsymbol/bell.badge.fill?size=14&dark=" + (_isDark ? "1" : "0") : ""
+                                    sourceSize: Qt.size(28, 28)
+                                    Layout.preferredWidth: 14
+                                    Layout.preferredHeight: 14
+                                    fillMode: Image.PreserveAspectFit
                                     Layout.alignment: Qt.AlignVCenter
-                                    contentItem: Label {
-                                        text: "\u00d7"
-                                        color: tabsRoot._tabCloseColor
-                                        horizontalAlignment: Text.AlignHCenter
-                                        verticalAlignment: Text.AlignVCenter
-                                    }
                                 }
                             }
 
@@ -712,6 +726,7 @@ Item {
 
                                 property point _pressPos: Qt.point(0, 0)
                                 property bool _dragging: false
+                                property bool _hoveringClose: containsMouse && _isOverCloseBtn(mouseX, mouseY)
 
                                 function _isOverCloseBtn(localX, localY) {
                                     var cp = closeBtn.mapFromItem(tabDragArea, localX, localY)
@@ -804,8 +819,8 @@ Item {
                     id: addTabButton
                     text: "+"
                     focusPolicy: Qt.NoFocus
-                    implicitWidth: 28
-                    implicitHeight: 28
+                    implicitWidth: 24
+                    implicitHeight: 24
                     padding: 0
                     Layout.alignment: Qt.AlignVCenter
                     onClicked: tabsRoot.addTab()
@@ -838,9 +853,9 @@ Item {
             Rectangle {
                 visible: tabsRoot._dragActive
                 x: tabsRoot._dragGhostX
-                y: 5
+                y: 3
                 width: tabsRoot._dragTabWidth
-                height: parent.height - 10
+                height: parent.height - 6
                 color: tabsRoot._tabActiveColor
                 border.color: tabsRoot._isDark ? "#505350" : "#CCCCCC"
                 border.width: 1

@@ -28,6 +28,7 @@
 #include <QMenu>
 #include <macutils.h>
 #include "badgehelper.h"
+#include "sfsymbolprovider.h"
 
 // App-level event filter for two purposes:
 // 1. QEvent::Quit: calls markQuitting() to set _isQuitting and save state
@@ -166,6 +167,8 @@ int main(int argc, char *argv[])
     importPathList.append(QCoreApplication::applicationDirPath() + "/../PlugIns");
     importPathList.append(QCoreApplication::applicationDirPath() + "/../../../qmltermwidget");
     engine.setImportPathList(importPathList);
+
+    engine.addImageProvider(QStringLiteral("sfsymbol"), new SFSymbolProvider);
 
     engine.load(QUrl(QStringLiteral ("qrc:/main.qml")));
 
