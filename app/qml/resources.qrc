@@ -17,6 +17,7 @@
         <file>SettingsEffectsTab.qml</file>
         <file>main.qml</file>
         <file>SettingsTerminalTab.qml</file>
+        <file>SettingsAITab.qml</file>
         <file>fonts/apple2/PrintChar21.ttf</file>
         <file>fonts/ibm-3278/3270NerdFontMono-Regular.ttf</file>
         <file>Storage.qml</file>
@@ -40,7 +41,9 @@
         <file>../icons/32x32/crt-plus.png</file>
         <file>Components/SizedLabel.qml</file>
         <file>Components/StyledCheckBox.qml</file>
+        <file>Components/StyledRadioButton.qml</file>
         <file>Components/StyledSlider.qml</file>
+        <file>Components/StyledSwitch.qml</file>
         <file>fonts/atari-400-800/AtariClassic-Regular.ttf</file>
         <file>fonts/pet-me/PetMe64.ttf</file>
         <file>fonts/pet-me/PetMe.ttf</file>

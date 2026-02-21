@@ -436,9 +436,21 @@ Item {
         t.onTitleChanged.connect(function() {
             if (!token.valid) return
             var root = pane._rootPane()
+
+            // CLI tools like Claude (✳) and Gemini (✋) prefix the terminal
+            // title with a distinctive Unicode character when they need
+            // attention. Treat this as a notification for badges/dock icon.
+            var raw = t.title || ""
+            if (raw.length > 0 && appSettings.attentionChars.indexOf(raw.charAt(0)) !== -1) {
+                if (!root.shouldHaveFocus || !pane.isFocused) {
+                    pane.paneBadgeCount++
+                    root.badgeCountChanged()
+                }
+            }
+
             var leaf = root.focusedLeaf()
             if (leaf && leaf.terminal === t)
-                root.focusedTitleChanged(t.title || "")
+                root.focusedTitleChanged(raw)
         })
         t.onCurrentDirChanged.connect(function() {
             if (!token.valid) return

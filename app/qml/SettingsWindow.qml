@@ -47,7 +47,8 @@ ApplicationWindow {
         { icon: "\u2261", label: qsTr("Profiles") },
         { icon: "\u25D0", label: qsTr("Appearance") },
         { icon: "\u2738", label: qsTr("Effects") },
-        { icon: ">_",     label: qsTr("Terminal") }
+        { icon: ">_",     label: qsTr("Terminal") },
+        { icon: "\u2726", label: qsTr("AI") }
     ]
 
     Column {
@@ -150,6 +151,14 @@ ApplicationWindow {
             }
             Item {
                 SettingsTerminalTab {
+                    anchors {
+                        fill: parent
+                        margins: 20
+                    }
+                }
+            }
+            Item {
+                SettingsAITab {
                     anchors {
                         fill: parent
                         margins: 20

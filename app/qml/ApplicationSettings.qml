@@ -40,6 +40,9 @@ QtObject {
 
     // GENERAL SETTINGS ///////////////////////////////////////////////////////
     property bool autoRestoreSessions: false
+
+    readonly property string defaultAttentionChars: "\u2733\u25C7\u270B"  // ✳ ◇ ✋
+    property string attentionChars: defaultAttentionChars
     property bool showMenubar: false
 
     property bool showTerminalSize: true
@@ -193,7 +196,8 @@ QtObject {
             "showMenubar": showMenubar,
             "bloomQuality": bloomQuality,
             "burnInQuality": burnInQuality,
-            "autoRestoreSessions": autoRestoreSessions
+            "autoRestoreSessions": autoRestoreSessions,
+            "attentionChars": attentionChars
         }
         return stringify(settings)
     }
@@ -337,6 +341,8 @@ QtObject {
 
         autoRestoreSessions = settings.autoRestoreSessions
                 !== undefined ? settings.autoRestoreSessions : autoRestoreSessions
+
+        attentionChars = settings.attentionChars !== undefined ? settings.attentionChars : attentionChars
     }
 
     function loadProfileString(profileString) {
@@ -1076,51 +1082,6 @@ QtObject {
             builtin: true
         }
         ListElement {
-            text: "Green-A"
-            obj_string: '{
-                "ambientLight": 0,
-                "backgroundColor": "#000000",
-                "bloom": 0.5,
-                "brightness": 0.5,
-                "burnIn": 0.3,
-                "chromaColor": 0,
-                "contrast": 0.8,
-                "flickering": 0,
-                "fontColor": "#0ccc68",
-                "fontName": "DEPARTURE_MONO_SCALED",
-                "fontSource": 0,
-                "fontWidth": 1,
-                "lineSpacing": 0.1,
-                "glowingLine": 0,
-                "horizontalSync": 0.1,
-                "jitter": 0.2,
-                "rasterization": 0,
-                "rgbShift": 0,
-                "saturationColor": 0,
-                "screenCurvature": 0,
-                "screenRadius": 0.0625,
-                "staticNoise": 0,
-                "windowOpacity": 1,
-                "margin": 0.3,
-                "blinkingCursor": true,
-                "cursorShape": 0,
-                "cursorCharacter": "",
-                "frameSize": 1,
-                "frameColor": "#d4d4d4",
-                "frameShininess": 0,
-                "solidFrameColor": true,
-                "flatFrame": true,
-                "highImpedance": true,
-                "fontScaling": 1,
-                "useCustomCommand": false,
-                "customCommand": "",
-                "editorCommand": "",
-                "remoteEditorCommand": "",
-                "promptCharacters": "$, #, %, >"
-            }'
-            builtin: true
-        }
-        ListElement {
             text: "IBM 3278 Reborn"
             obj_string: '{
                 "ambientLight": 0.2,
@@ -1636,14 +1597,23 @@ QtObject {
             "rgbShift", "brightness", "contrast", "highImpedance", "ambientLight",
             "windowOpacity", "_margin", "_frameSize", "_screenRadius",
             "_frameShininess", "solidFrameColor", "flatFrame", "blinkingCursor",
-            "cursorShape", "cursorCharacter", "rasterization", "fontSource", "fontName", "fontWidth", "lineSpacing",
-            "fontScaling", "useCustomCommand", "customCommand",
+            "cursorShape", "cursorCharacter",
+            "useCustomCommand", "customCommand",
             "editorCommand", "remoteEditorCommand", "promptCharacters"
         ]
         for (var pi = 0; pi < profileProps.length; pi++) {
             var sig = appSettings[profileProps[pi] + "Changed"]
             if (sig) sig.connect(function() { _profileRevision++ })
         }
+        // Font properties are aliases to C++ FontManager — bracket notation
+        // doesn't find their changed signals, so connect directly.
+        var fontRevision = function() { _profileRevision++ }
+        fontManager.rasterizationChanged.connect(fontRevision)
+        fontManager.fontSourceChanged.connect(fontRevision)
+        fontManager.fontNameChanged.connect(fontRevision)
+        fontManager.fontWidthChanged.connect(fontRevision)
+        fontManager.lineSpacingChanged.connect(fontRevision)
+        fontManager.fontScalingChanged.connect(fontRevision)
 
         // Take initial snapshot after all loading is complete
         _profileSnapshot = composeProfileString()

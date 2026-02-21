@@ -595,6 +595,16 @@ Item {
                             tabsRoot.loadTabProfile(currentIndex)
                         }
 
+                        // Clear badge on the newly selected tab
+                        var root = tabRepeater.itemAt(currentIndex)
+                        if (root) {
+                            var leaf = root.focusedLeaf()
+                            if (leaf && leaf.paneBadgeCount > 0) {
+                                leaf.paneBadgeCount = 0
+                                root.badgeCountChanged()
+                            }
+                        }
+
                         tabsRoot._previousIndex = currentIndex
                     }
 

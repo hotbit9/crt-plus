@@ -87,7 +87,7 @@ Flickable {
                 Label {
                     text: qsTr("75\u03A9")
                 }
-                Switch {
+                StyledSwitch {
                     onCheckedChanged: appSettings.highImpedance = checked
                     Binding on checked { value: appSettings.highImpedance }
                 }

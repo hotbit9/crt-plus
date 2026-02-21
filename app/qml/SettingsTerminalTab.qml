@@ -27,12 +27,12 @@ Flickable {
             }
             RowLayout {
                 Layout.fillWidth: true
-                RadioButton {
+                StyledRadioButton {
                     text: qsTr("Bundled")
                     onClicked: appSettings.fontSource = appSettings.bundled_fonts
                     Binding on checked { value: appSettings.fontSource === appSettings.bundled_fonts }
                 }
-                RadioButton {
+                StyledRadioButton {
                     text: qsTr("System")
                     onClicked: appSettings.fontSource = appSettings.system_fonts
                     Binding on checked { value: appSettings.fontSource === appSettings.system_fonts }
@@ -161,19 +161,19 @@ Flickable {
             RowLayout {
                 Layout.fillWidth: true
                 enabled: appSettings.cursorCharacter === ""
-                RadioButton {
+                StyledRadioButton {
                     text: qsTr("Block")
                     onClicked: appSettings.cursorShape = 0
                     Binding on checked { value: appSettings.cursorShape === 0 }
                     enabled: parent.enabled
                 }
-                RadioButton {
+                StyledRadioButton {
                     text: qsTr("Underline")
                     onClicked: appSettings.cursorShape = 1
                     Binding on checked { value: appSettings.cursorShape === 1 }
                     enabled: parent.enabled
                 }
-                RadioButton {
+                StyledRadioButton {
                     text: qsTr("I-Beam")
                     onClicked: appSettings.cursorShape = 2
                     Binding on checked { value: appSettings.cursorShape === 2 }
