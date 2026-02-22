@@ -1001,6 +1001,8 @@ void event_loop_run(int listen_fd) {
             struct pollfd ppfd = {};
             ppfd.fd = s->master_fd;
             ppfd.events = POLLIN;
+            if (!s->pending_input.empty())
+                ppfd.events |= POLLOUT;
             fds.push_back(ppfd);
             pty_sessions.push_back(s);
         }
@@ -1074,12 +1076,11 @@ void event_loop_run(int listen_fd) {
             if (pfd_idx >= fds.size()) break;
             DaemonSession *s = pty_sessions[i];
 
-            if (fds[pfd_idx].revents & POLLIN) {
-                // Drain any backpressured input — PTY readability often means
-                // the process consumed input and there's space to write again
-                if (!s->pending_input.empty())
-                    drain_pending_input(s);
+            // Drain queued input when PTY master is writable
+            if ((fds[pfd_idx].revents & POLLOUT) && !s->pending_input.empty())
+                drain_pending_input(s);
 
+            if (fds[pfd_idx].revents & POLLIN) {
                 uint8_t buf[8192];
                 ssize_t n = read(s->master_fd, buf, sizeof(buf));
                 if (n > 0) {
