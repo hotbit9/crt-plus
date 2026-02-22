@@ -55,6 +55,7 @@ struct DaemonSession {
     bool        flow_paused;          // PTY read paused: client socket returned EAGAIN,
                                       // cleared when send_buf fully flushed
     pid_t       cached_fg_pid;        // Last known foreground PID (for change detection)
+    std::vector<uint8_t> pending_input; // Buffered input bytes when PTY write returns EAGAIN
 };
 
 // Create a new session: open PTY, fork shell, allocate ring buffer.

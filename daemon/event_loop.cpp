@@ -522,6 +522,28 @@ static void handle_resize(Client *client, const uint8_t *payload, uint32_t len) 
     LOG_DEBUG("session %s resized to %dx%d", uuid, cols, rows);
 }
 
+// -------------------------------------------------------------------
+// Drain pending input queued due to PTY backpressure (EAGAIN)
+// -------------------------------------------------------------------
+
+static void drain_pending_input(DaemonSession *session) {
+    while (!session->pending_input.empty()) {
+        ssize_t n = write(session->master_fd,
+                          session->pending_input.data(),
+                          session->pending_input.size());
+        if (n > 0) {
+            session->pending_input.erase(session->pending_input.begin(),
+                                          session->pending_input.begin() + n);
+        } else if (n < 0) {
+            if (errno == EINTR)
+                continue;
+            break;  // EAGAIN or error — try again next time
+        } else {
+            break;  // write() returned 0 — should not happen, avoid spinning
+        }
+    }
+}
+
 static void handle_input(Client *client, const uint8_t *payload, uint32_t len) {
     // INPUT: [36B session_id][raw_bytes...]
     char uuid[UUID_STR_LEN];
@@ -534,22 +556,39 @@ static void handle_input(Client *client, const uint8_t *payload, uint32_t len) {
     const uint8_t *data = payload + SESSION_ID_LEN;
     uint32_t data_len = len - SESSION_ID_LEN;
 
-    // Write to PTY master
+    // Write to PTY master (or queue if backpressured)
+    const uint8_t *write_data = data;
+    uint32_t write_len = data_len;
+
+    // If there's already queued data, append to queue instead of writing directly
+    if (!session->pending_input.empty()) {
+        session->pending_input.insert(session->pending_input.end(),
+                                       write_data, write_data + write_len);
+        return;
+    }
+
     size_t written = 0;
-    while (written < data_len) {
+    while (written < write_len) {
         ssize_t n = write(session->master_fd,
-                          data + written,
-                          data_len - written);
+                          write_data + written,
+                          write_len - written);
         if (n > 0) {
             written += static_cast<size_t>(n);
         } else if (n < 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
-                break;
             if (errno == EINTR)
                 continue;
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // Buffer remaining data for later drain
+                session->pending_input.insert(session->pending_input.end(),
+                                               write_data + written,
+                                               write_data + write_len);
+                break;
+            }
             LOG_ERROR("write to PTY master fd=%d failed: %s",
                       session->master_fd, strerror(errno));
             break;
+        } else {
+            break;  // write() returned 0 — should not happen, avoid spinning
         }
     }
 }
@@ -1036,6 +1075,11 @@ void event_loop_run(int listen_fd) {
             DaemonSession *s = pty_sessions[i];
 
             if (fds[pfd_idx].revents & POLLIN) {
+                // Drain any backpressured input — PTY readability often means
+                // the process consumed input and there's space to write again
+                if (!s->pending_input.empty())
+                    drain_pending_input(s);
+
                 uint8_t buf[8192];
                 ssize_t n = read(s->master_fd, buf, sizeof(buf));
                 if (n > 0) {
