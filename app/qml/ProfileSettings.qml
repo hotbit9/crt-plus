@@ -157,6 +157,8 @@ QtObject {
         if (!profileString || profileString === "") return
         var s = JSON.parse(profileString)
 
+        fontManager.beginBatchUpdate()
+
         _backgroundColor = s.backgroundColor !== undefined ? s.backgroundColor : _backgroundColor
         _fontColor = s.fontColor !== undefined ? s.fontColor : _fontColor
         horizontalSync = s.horizontalSync !== undefined ? s.horizontalSync : horizontalSync
@@ -197,11 +199,14 @@ QtObject {
         remoteEditorCommand = s.remoteEditorCommand !== undefined ? s.remoteEditorCommand : remoteEditorCommand
         promptCharacters = s.promptCharacters !== undefined ? s.promptCharacters : promptCharacters
 
+        fontManager.endBatchUpdate()
+
         profileChanged()
     }
 
     function syncFromAppSettings() {
         _syncing = true
+        fontManager.beginBatchUpdate()
 
         _backgroundColor = appSettings._backgroundColor
         _fontColor = appSettings._fontColor
@@ -244,6 +249,7 @@ QtObject {
         promptCharacters = appSettings.promptCharacters
         currentProfileIndex = appSettings.currentProfileIndex
 
+        fontManager.endBatchUpdate()
         _syncing = false
         profileChanged()
     }

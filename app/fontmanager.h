@@ -26,6 +26,8 @@ public:
     explicit FontManager(QObject *parent = nullptr);
 
     Q_INVOKABLE void refresh();
+    Q_INVOKABLE void beginBatchUpdate();
+    Q_INVOKABLE void endBatchUpdate();
 
     FontListModel *fontList();
     FontListModel *filteredFontList();
@@ -106,6 +108,8 @@ private:
 
     QHash<QString, QString> m_loadedFamilies;
     QSet<QString> m_bundledFamilies;
+    bool m_batchMode = false;
+    bool m_batchDirty = false;
 };
 
 #endif // FONTMANAGER_H

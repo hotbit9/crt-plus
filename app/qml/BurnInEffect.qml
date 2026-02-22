@@ -82,25 +82,16 @@ Loader {
                     completelyUpdate()
                 }
             }
-            // Restart blurred source settings change.
+            // Restart blurred source when settings that affect
+            // the burn-in texture change.
             Connections {
                 target: profileSettings.fontManager
-
-                onTerminalFontChanged: {
-                    burnInEffect.restartBlurSource()
-                }
+                onTerminalFontChanged: burnInEffect.restartBlurSource()
             }
-
             Connections {
                 target: profileSettings
-
-                onBurnInChanged: {
-                    burnInEffect.restartBlurSource()
-                }
-
-                onRasterizationChanged: {
-                    burnInEffect.restartBlurSource()
-                }
+                onBurnInChanged: burnInEffect.restartBlurSource()
+                onRasterizationChanged: burnInEffect.restartBlurSource()
             }
 
             Connections {

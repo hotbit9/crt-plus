@@ -160,7 +160,7 @@ Item{
     QMLTermWidget {
         id: kterminal
 
-        property int textureResolutionScale: appSettings.lowResolutionFont ? Screen.devicePixelRatio : 1
+        property int textureResolutionScale: profileSettings.fontManager.lowResolutionFont ? Screen.devicePixelRatio : 1
         property int margin: profileSettings.margin / screenScaling
         property int totalWidth: Math.floor(parent.width / (screenScaling * fontWidth))
         property int totalHeight: Math.floor(parent.height / screenScaling)
@@ -756,11 +756,11 @@ Item{
 
         property int burnInScaling: scaleTexture * appSettings.burnInQuality
 
-        width: Math.round(appSettings.lowResolutionFont
+        width: Math.round(profileSettings.fontManager.lowResolutionFont
                ? kterminal.totalWidth * Math.max(1, burnInScaling)
                : kterminal.totalWidth * scaleTexture * appSettings.burnInQuality)
 
-        height: Math.round(appSettings.lowResolutionFont
+        height: Math.round(profileSettings.fontManager.lowResolutionFont
                 ? kterminal.totalHeight * Math.max(1, burnInScaling)
                 : kterminal.totalHeight * scaleTexture * appSettings.burnInQuality)
 

@@ -47,6 +47,22 @@ void FontManager::refresh()
     updateComputedFont();
 }
 
+void FontManager::beginBatchUpdate()
+{
+    m_batchMode = true;
+    m_batchDirty = false;
+}
+
+void FontManager::endBatchUpdate()
+{
+    m_batchMode = false;
+    if (m_batchDirty) {
+        m_batchDirty = false;
+        updateFilteredFonts();
+        updateComputedFont();
+    }
+}
+
 FontListModel *FontManager::fontList()
 {
     return &m_fontListModel;
@@ -69,6 +85,7 @@ void FontManager::setFontSource(int fontSource)
     }
     m_fontSource = fontSource;
     emit fontSourceChanged();
+    if (m_batchMode) { m_batchDirty = true; return; }
     updateFilteredFonts();
     updateComputedFont();
 }
@@ -85,6 +102,7 @@ void FontManager::setRasterization(int rasterization)
     }
     m_rasterization = rasterization;
     emit rasterizationChanged();
+    if (m_batchMode) { m_batchDirty = true; return; }
     updateFilteredFonts();
     updateComputedFont();
 }
@@ -101,6 +119,7 @@ void FontManager::setFontName(const QString &fontName)
     }
     m_fontName = fontName;
     emit fontNameChanged();
+    if (m_batchMode) { m_batchDirty = true; return; }
     updateFilteredFonts();
     updateComputedFont();
 }
@@ -117,6 +136,7 @@ void FontManager::setFontScaling(qreal fontScaling)
     }
     m_fontScaling = fontScaling;
     emit fontScalingChanged();
+    if (m_batchMode) { m_batchDirty = true; return; }
     updateComputedFont();
 }
 
@@ -132,6 +152,7 @@ void FontManager::setFontWidth(qreal fontWidth)
     }
     m_fontWidth = fontWidth;
     emit fontWidthChanged();
+    if (m_batchMode) { m_batchDirty = true; return; }
     updateComputedFont();
 }
 
@@ -147,6 +168,7 @@ void FontManager::setLineSpacing(qreal lineSpacing)
     }
     m_lineSpacing = lineSpacing;
     emit lineSpacingChanged();
+    if (m_batchMode) { m_batchDirty = true; return; }
     updateComputedFont();
 }
 

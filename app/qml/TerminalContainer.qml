@@ -77,6 +77,7 @@ ShaderTerminal {
 
     function activate() {
         terminal.mainTerminal.forceActiveFocus()
+        Qt.callLater(terminal.updateSources)
     }
 
     function getDaemonSessionId() { return terminal.getDaemonSessionId() }

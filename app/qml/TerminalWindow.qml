@@ -163,6 +163,15 @@ ApplicationWindow {
             if (sig) sig.connect(scheduleSync)
         }
         appSettings.profileChanged.connect(scheduleSync)
+
+        // Font properties are aliases to C++ FontManager — bracket notation
+        // doesn't find their changed signals, so connect directly.
+        appSettings.fontManager.rasterizationChanged.connect(scheduleSync)
+        appSettings.fontManager.fontSourceChanged.connect(scheduleSync)
+        appSettings.fontManager.fontNameChanged.connect(scheduleSync)
+        appSettings.fontManager.fontWidthChanged.connect(scheduleSync)
+        appSettings.fontManager.lineSpacingChanged.connect(scheduleSync)
+        appSettings.fontManager.fontScalingChanged.connect(scheduleSync)
     }
 
     Action {
