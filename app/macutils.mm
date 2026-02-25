@@ -1,7 +1,11 @@
 #import <Cocoa/Cocoa.h>
-#import <QMenu>
-#import <QAction>
-#import <QMetaObject>
+#include <QMenu>
+#include <QAction>
+#include <QMetaObject>
+#ifdef HAVE_SPARKLE
+#import <Sparkle/Sparkle.h>
+static SPUStandardUpdaterController *s_sparkleController = nil;
+#endif
 
 // Finder Services provider: handles "New CRT Plus at Folder" and
 // "New CRT Plus Tab at Folder" from Finder's right-click → Services menu.
@@ -92,4 +96,45 @@ void registerServiceProvider(QObject *rootObject)
     [NSApp registerServicesMenuSendTypes:@[NSPasteboardTypeFileURL]
                              returnTypes:@[]];
 }
+
+#ifdef HAVE_SPARKLE
+void initSparkle() {
+    s_sparkleController = [[SPUStandardUpdaterController alloc]
+        initWithStartingUpdater:NO updaterDelegate:nil userDriverDelegate:nil];
+}
+
+void sparkleStartUpdater() {
+    if (!s_sparkleController) return;
+    NSError *error = nil;
+    if (![s_sparkleController.updater startUpdater:&error]) {
+        NSLog(@"Sparkle startUpdater failed: %@", error);
+    }
+}
+
+void sparkleCheckForUpdates() {
+    if (!s_sparkleController) return;
+    [s_sparkleController checkForUpdates:nil];
+}
+
+void insertCheckForUpdatesMenuItem() {
+    if (!s_sparkleController) return;
+    NSMenu *appMenu = [[NSApp mainMenu] itemAtIndex:0].submenu;
+    NSInteger aboutIndex = -1;
+    for (NSInteger i = 0; i < appMenu.numberOfItems; i++) {
+        // NOTE: This string match assumes English locale.
+        if ([[appMenu itemAtIndex:i].title containsString:@"About"]) {
+            aboutIndex = i;
+            break;
+        }
+    }
+    NSInteger insertIndex = (aboutIndex >= 0) ? aboutIndex + 1 : 1;
+    [appMenu insertItem:[NSMenuItem separatorItem] atIndex:insertIndex];
+    NSMenuItem *item = [[NSMenuItem alloc]
+        initWithTitle:@"Check for Updates…"
+        action:@selector(checkForUpdates:)
+        keyEquivalent:@""];
+    item.target = s_sparkleController;
+    [appMenu insertItem:item atIndex:insertIndex + 1];
+}
+#endif
 

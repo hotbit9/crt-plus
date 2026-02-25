@@ -28,6 +28,10 @@
 #include <QMenu>
 #include <macutils.h>
 #include "badgehelper.h"
+#ifdef HAVE_SPARKLE
+#include "sparkleupdater.h"
+#include <QTimer>
+#endif
 #include "sfsymbolprovider.h"
 
 // App-level event filter for two purposes:
@@ -161,6 +165,11 @@ int main(int argc, char *argv[])
     BadgeHelper badgeHelper;
     engine.rootContext()->setContextProperty("badgeHelper", &badgeHelper);
 
+#ifdef HAVE_SPARKLE
+    SparkleUpdater sparkleUpdater;
+    engine.rootContext()->setContextProperty("sparkleUpdater", &sparkleUpdater);
+#endif
+
     // Set up QML import paths for the app bundle.
     QStringList importPathList = engine.importPathList();
     importPathList.append(QCoreApplication::applicationDirPath() + "/qmltermwidget");
@@ -254,6 +263,14 @@ int main(int argc, char *argv[])
 
         // Register as a Finder Services provider ("New CRT Plus Window Here")
         registerServiceProvider(rootObject);
+
+#ifdef HAVE_SPARKLE
+        insertCheckForUpdatesMenuItem();
+        // sparkleUpdater is stack-allocated in main() and outlives app.exec().
+        QTimer::singleShot(1000, [&sparkleUpdater]() {
+            sparkleUpdater.startUpdater();
+        });
+#endif
     }
 
     return app.exec();

@@ -29,13 +29,28 @@ SOURCES += main.cpp \
 HEADERS += macutils.h badgehelper.h sfsymbolprovider.h
 OBJECTIVE_SOURCES += macutils.mm sfsymbolprovider.mm
 LIBS += -framework AppKit
+PLIST = $$DESTDIR/crt-plus.app/Contents/Info.plist
+# Sparkle update framework (optional — only if third_party/Sparkle is present)
+SPARKLE_DIR = $$PWD/../third_party/Sparkle
+exists($$SPARKLE_DIR/Sparkle.framework) {
+    DEFINES += HAVE_SPARKLE
+    HEADERS += sparkleupdater.h
+    QMAKE_OBJECTIVE_CFLAGS += -F\"$$SPARKLE_DIR\"
+    QMAKE_LFLAGS += -F\"$$SPARKLE_DIR\"
+    LIBS += -framework Sparkle
+    QMAKE_RPATHDIR += @executable_path/../Frameworks
+    # Copy Sparkle.framework into app bundle
+    QMAKE_POST_LINK += mkdir -p \"$$DESTDIR/crt-plus.app/Contents/Frameworks\" && cp -a \"$$SPARKLE_DIR/Sparkle.framework\" \"$$DESTDIR/crt-plus.app/Contents/Frameworks/\" ;
+    # Sparkle plist entries (feed URL and public signing key)
+    QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Set :SUFeedURL 'https://crtplus.fromhelloworld.com/update/appcast.xml'\" \"$$PLIST\" 2>/dev/null || /usr/libexec/PlistBuddy -c \"Add :SUFeedURL string 'https://crtplus.fromhelloworld.com/update/appcast.xml'\" \"$$PLIST\" ;
+    QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Set :SUPublicEDKey '/13lX64sKZsLSMeR5loxKflg9pWzFV7ymsxEEkvaOaA='\" \"$$PLIST\" 2>/dev/null || /usr/libexec/PlistBuddy -c \"Add :SUPublicEDKey string '/13lX64sKZsLSMeR5loxKflg9pWzFV7ymsxEEkvaOaA='\" \"$$PLIST\" ;
+}
 # Set display name to "CRT Plus" (Finder shows this instead of the binary name)
 QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Set :CFBundleDisplayName 'CRT Plus'\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" 2>/dev/null || /usr/libexec/PlistBuddy -c \"Add :CFBundleDisplayName string 'CRT Plus'\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" ;
 QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Set :CFBundleName 'CRT Plus'\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" 2>/dev/null || /usr/libexec/PlistBuddy -c \"Add :CFBundleName string 'CRT Plus'\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" ;
 # Start as LSUIElement (no dock icon). Primary instance promotes itself to Regular.
 QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Add :LSUIElement bool true\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" 2>/dev/null || /usr/libexec/PlistBuddy -c \"Set :LSUIElement true\" \"$$DESTDIR/crt-plus.app/Contents/Info.plist\" ;
 # Accept folder drops on dock icon (opens new window in that directory)
-PLIST = $$DESTDIR/crt-plus.app/Contents/Info.plist
 QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Delete :CFBundleDocumentTypes\" \"$$PLIST\" 2>/dev/null ; /usr/libexec/PlistBuddy -c \"Add :CFBundleDocumentTypes array\" \"$$PLIST\" && /usr/libexec/PlistBuddy -c \"Add :CFBundleDocumentTypes:0 dict\" \"$$PLIST\" && /usr/libexec/PlistBuddy -c \"Add :CFBundleDocumentTypes:0:CFBundleTypeRole string Viewer\" \"$$PLIST\" && /usr/libexec/PlistBuddy -c \"Add :CFBundleDocumentTypes:0:LSItemContentTypes array\" \"$$PLIST\" && /usr/libexec/PlistBuddy -c \"Add :CFBundleDocumentTypes:0:LSItemContentTypes:0 string public.folder\" \"$$PLIST\" ;
 # Register as Finder Services provider (right-click folder menu)
 QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Delete :NSServices\" \"$$PLIST\" 2>/dev/null ; \
@@ -56,7 +71,9 @@ QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Delete :NSServices\" \"$$PLIST\"
     /usr/libexec/PlistBuddy -c \"Add :NSServices:1:NSSendFileTypes array\" \"$$PLIST\" && \
     /usr/libexec/PlistBuddy -c \"Add :NSServices:1:NSSendFileTypes:0 string public.folder\" \"$$PLIST\" && \
     /usr/libexec/PlistBuddy -c \"Add :NSServices:1:NSRequiredContext dict\" \"$$PLIST\" ;
-
+# Version keys
+QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString '$$APP_VERSION'\" \"$$PLIST\" 2>/dev/null || /usr/libexec/PlistBuddy -c \"Add :CFBundleShortVersionString string '$$APP_VERSION'\" \"$$PLIST\" ;
+QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Set :CFBundleVersion '$$APP_BUILD'\" \"$$PLIST\" 2>/dev/null || /usr/libexec/PlistBuddy -c \"Add :CFBundleVersion string '$$APP_BUILD'\" \"$$PLIST\" ;
 ICON = icons/crt-plus.icns
 
 RESOURCES += qml/resources.qrc

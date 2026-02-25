@@ -140,7 +140,7 @@ ApplicationWindow {
                 linkColor: palette.link
                 textFormat: Text.RichText
                 onLinkActivated: function(link) { Qt.openUrlExternally(link) }
-                text: appSettings.version + "<br><br>"
+                text: appSettings.version + " (" + appBuild + ")" + "<br><br>"
                           + qsTr("By: ") + "Alex Fabri<br>" + qsTr(
                           "Website: ") + "<a href=\"https://crtplus.fromhelloworld.com\">crtplus.fromhelloworld.com</a><br><br>"
                           + qsTr("Based on cool-retro-term by ") + "Filippo Scognamiglio"
