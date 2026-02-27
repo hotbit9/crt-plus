@@ -357,7 +357,8 @@ Item{
                wheel.angleDelta.y > 0 ? zoomIn.trigger() : zoomOut.trigger();
             } else {
                 var coord = correctDistortion(wheel.x, wheel.y);
-                kterminal.simulateWheel(coord.x, coord.y, wheel.buttons, wheel.modifiers, wheel.angleDelta);
+                var delta = Qt.point(wheel.angleDelta.x, wheel.angleDelta.y * appSettings.scrollSpeed);
+                kterminal.simulateWheel(coord.x, coord.y, wheel.buttons, wheel.modifiers, delta);
             }
         }
         onDoubleClicked: function(mouse) {

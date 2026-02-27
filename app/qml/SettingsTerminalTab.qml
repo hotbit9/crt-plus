@@ -187,6 +187,33 @@ Flickable {
             }
         }
 
+        // SCROLLING ////////////////////////////////////////////////////////////
+        SectionHeader {
+            text: qsTr("Scrolling")
+        }
+        GridLayout {
+            Layout.fillWidth: true
+            columns: 2
+            Label {
+                text: qsTr("Scroll Speed")
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                StyledSlider {
+                    Layout.fillWidth: true
+                    id: scrollSpeedChanger
+                    onValueChanged: appSettings.scrollSpeed = value
+                    Binding on value { value: appSettings.scrollSpeed }
+                    stepSize: 1
+                    from: 1
+                    to: 10
+                }
+                SizedLabel {
+                    text: Math.round(scrollSpeedChanger.value) + (Math.round(scrollSpeedChanger.value) === 1 ? " line" : " lines")
+                }
+            }
+        }
+
         // SHELL ////////////////////////////////////////////////////////////////
         SectionHeader {
             text: qsTr("Shell")

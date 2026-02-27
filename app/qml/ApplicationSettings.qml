@@ -40,6 +40,7 @@ QtObject {
 
     // GENERAL SETTINGS ///////////////////////////////////////////////////////
     property bool autoRestoreSessions: false
+    property int scrollSpeed: 3
 
     readonly property string defaultAttentionChars: "\u2733\u25C7\u270B"  // ✳ ◇ ✋
     property string attentionChars: defaultAttentionChars
@@ -197,7 +198,8 @@ QtObject {
             "bloomQuality": bloomQuality,
             "burnInQuality": burnInQuality,
             "autoRestoreSessions": autoRestoreSessions,
-            "attentionChars": attentionChars
+            "attentionChars": attentionChars,
+            "scrollSpeed": scrollSpeed
         }
         return stringify(settings)
     }
@@ -343,6 +345,8 @@ QtObject {
                 !== undefined ? settings.autoRestoreSessions : autoRestoreSessions
 
         attentionChars = settings.attentionChars !== undefined ? settings.attentionChars : attentionChars
+
+        scrollSpeed = settings.scrollSpeed !== undefined ? settings.scrollSpeed : scrollSpeed
     }
 
     function loadProfileString(profileString) {
