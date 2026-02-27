@@ -151,9 +151,14 @@ RowLayout {
             enabled: selectedIndex >= 0
             onClicked: {
                 var profile = appSettings.profilesList.get(selectedIndex)
-                insertname._sourceProfileString = profile.obj_string
-                insertname.profileName = profile.text
-                insertname.show()
+                var name = nativeAlert.prompt(qsTr("Duplicate selected Profile"), qsTr("Save as:"), profile.text)
+                if (name !== "") {
+                    appSettings.appendCustomProfile(name, profile.obj_string)
+                    appSettings.storeCustomProfiles()
+                    var newIndex = appSettings.profilesList.count - 1
+                    appSettings.loadProfile(newIndex)
+                    selectedIndex = newIndex
+                }
             }
         }
         Button {
@@ -198,9 +203,33 @@ RowLayout {
             enabled: selectedIndex >= 0 && !appSettings.profilesList.get(
                          selectedIndex).builtin
             onClicked: {
-                confirmRemoveDialog.profileIndex = selectedIndex
-                confirmRemoveDialog.profileName = appSettings.profilesList.get(selectedIndex).text
-                confirmRemoveDialog.open()
+                var profileName = appSettings.profilesList.get(selectedIndex).text
+                if (nativeAlert.confirm(qsTr("Remove selected Profile"),
+                                        qsTr("Confirm to remove \"%1\"?").arg(profileName),
+                                        qsTr("Remove"))) {
+                    var removedIndex = selectedIndex
+                    var wasLoaded = (removedIndex === appSettings.currentProfileIndex)
+
+                    if (appSettings.profilesList.get(removedIndex).text === appSettings.defaultProfileName) {
+                        appSettings.defaultProfileName = ""
+                        appSettings.storage.setSetting("_DEFAULT_PROFILE_NAME", "")
+                    }
+
+                    appSettings.profilesList.remove(removedIndex)
+                    appSettings.storeCustomProfiles()
+
+                    if (wasLoaded) {
+                        var defaultIndex = appSettings.getProfileIndexByName(appSettings.defaultProfileName)
+                        if (defaultIndex < 0) defaultIndex = 0
+                        appSettings.loadProfile(defaultIndex)
+                        selectedIndex = defaultIndex
+                    } else if (removedIndex < appSettings.currentProfileIndex) {
+                        appSettings.currentProfileIndex--
+                        selectedIndex = appSettings.currentProfileIndex
+                    }
+
+                    feedbackLabel.text = qsTr("\u2713 Removed"); feedbackTimer.restart()
+                }
             }
         }
         Button {
@@ -256,8 +285,7 @@ RowLayout {
                                                     JSON.stringify(
                                                         profileObject))
                 } catch (err) {
-                    messageDialog.text = qsTr(err)
-                    messageDialog.open()
+                    nativeAlert.message(qsTr("Could not import the Profile"), String(err))
                 }
             }
         }
@@ -299,71 +327,14 @@ RowLayout {
                         throw "The file could not be written."
                 } catch (err) {
                     console.log(err)
-                    messageDialog.text = qsTr(
-                                "There has been an error storing the file.")
-                    messageDialog.open()
+                    nativeAlert.message(qsTr("Could not save the Profile"),
+                                        qsTr("There is an error while saving the Profile"))
                 }
             }
         }
     }
 
     // DIALOGS //////////////////////////////////////////////////////////////
-    InsertNameDialog {
-        id: insertname
-        property string _sourceProfileString: ""
-        onNameSelected: {
-            appSettings.appendCustomProfile(name, _sourceProfileString)
-            appSettings.storeCustomProfiles()
-            var newIndex = appSettings.profilesList.count - 1
-            appSettings.loadProfile(newIndex)
-            selectedIndex = newIndex
-        }
-    }
-    Dialog {
-        id: confirmRemoveDialog
-        property int profileIndex: -1
-        property string profileName
-        title: qsTr("Remove Profile")
-        modal: true
-        anchors.centerIn: parent
-        standardButtons: Dialog.Yes | Dialog.No
-        Label {
-            text: qsTr("Remove \"%1\"?").arg(confirmRemoveDialog.profileName)
-        }
-        onAccepted: {
-            var removedIndex = profileIndex
-            var wasLoaded = (removedIndex === appSettings.currentProfileIndex)
-
-            if (appSettings.profilesList.get(removedIndex).text === appSettings.defaultProfileName) {
-                appSettings.defaultProfileName = ""
-                appSettings.storage.setSetting("_DEFAULT_PROFILE_NAME", "")
-            }
-
-            appSettings.profilesList.remove(removedIndex)
-            appSettings.storeCustomProfiles()
-
-            if (wasLoaded) {
-                var defaultIndex = appSettings.getProfileIndexByName(appSettings.defaultProfileName)
-                if (defaultIndex < 0) defaultIndex = 0
-                appSettings.loadProfile(defaultIndex)
-                selectedIndex = defaultIndex
-            } else if (removedIndex < appSettings.currentProfileIndex) {
-                appSettings.currentProfileIndex--
-                selectedIndex = appSettings.currentProfileIndex
-            }
-
-            feedbackLabel.text = qsTr("\u2713 Removed"); feedbackTimer.restart()
-        }
-    }
-    Dialog {
-        id: messageDialog
-        property alias text: messageLabel.text
-        title: qsTr("File Error")
-        modal: true
-        anchors.centerIn: parent
-        standardButtons: Dialog.Ok
-        Label { id: messageLabel }
-    }
     Loader {
         property var callBack
         property bool selectExisting: false

@@ -452,8 +452,6 @@ Item {
         id: tabsModel
     }
 
-    property int _renameTabIndex: -1
-
     function resetCustomTitle(tabIndex) {
         if (tabIndex >= 0 && tabIndex < tabsModel.count) {
             tabsModel.setProperty(tabIndex, "customTitle", "")
@@ -461,65 +459,23 @@ Item {
     }
 
     function openRenameDialog(tabIndex) {
-        _renameTabIndex = tabIndex
         var entry = tabsModel.get(tabIndex)
-        renameField.text = entry.customTitle !== "" ? entry.customTitle : entry.title
-        renameDialog.open()
-        renameField.selectAll()
-        renameField.forceActiveFocus()
-    }
-
-    Dialog {
-        id: renameDialog
-        title: qsTr("Rename Tab")
-        anchors.centerIn: parent
-        modal: true
-        standardButtons: Dialog.Ok | Dialog.Cancel
-        onAccepted: {
-            if (_renameTabIndex >= 0 && _renameTabIndex < tabsModel.count) {
-                tabsModel.setProperty(_renameTabIndex, "customTitle", renameField.text.trim())
-            }
-        }
-        RowLayout {
-            anchors.fill: parent
-            Label { text: qsTr("Name:") }
-            TextField {
-                id: renameField
-                Layout.fillWidth: true
-                onAccepted: renameDialog.accept()
-            }
+        var current = entry.customTitle !== "" ? entry.customTitle : entry.title
+        var name = nativeAlert.prompt(qsTr("Rename selected Tab"), qsTr("Enter new name:"), current)
+        if (name !== "") {
+            tabsModel.setProperty(tabIndex, "customTitle", name)
         }
     }
 
     function openRenameWindowDialog() {
-        renameWindowField.text = customWindowTitle || "CRT Plus"
-        renameWindowDialog.open()
-        renameWindowField.selectAll()
-        renameWindowField.forceActiveFocus()
+        var name = nativeAlert.prompt(qsTr("Rename selected Window"), qsTr("Enter new name:"), customWindowTitle || "CRT Plus")
+        if (name !== "") {
+            customWindowTitle = name
+        }
     }
 
     function resetWindowTitle() {
         customWindowTitle = ""
-    }
-
-    Dialog {
-        id: renameWindowDialog
-        title: qsTr("Rename Window")
-        anchors.centerIn: parent
-        modal: true
-        standardButtons: Dialog.Ok | Dialog.Cancel
-        onAccepted: {
-            customWindowTitle = renameWindowField.text.trim()
-        }
-        RowLayout {
-            anchors.fill: parent
-            Label { text: qsTr("Name:") }
-            TextField {
-                id: renameWindowField
-                Layout.fillWidth: true
-                onAccepted: renameWindowDialog.accept()
-            }
-        }
     }
 
     Component.onCompleted: {

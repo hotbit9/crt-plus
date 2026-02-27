@@ -33,6 +33,7 @@
 #include <QTimer>
 #endif
 #include "sfsymbolprovider.h"
+#include "nativealert.h"
 
 // App-level event filter for two purposes:
 // 1. QEvent::Quit: calls markQuitting() to set _isQuitting and save state
@@ -164,6 +165,9 @@ int main(int argc, char *argv[])
 
     BadgeHelper badgeHelper;
     engine.rootContext()->setContextProperty("badgeHelper", &badgeHelper);
+
+    NativeAlert nativeAlert;
+    engine.rootContext()->setContextProperty("nativeAlert", &nativeAlert);
 
 #ifdef HAVE_SPARKLE
     SparkleUpdater sparkleUpdater;

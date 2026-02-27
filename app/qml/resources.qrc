@@ -13,7 +13,7 @@
         <file>SimpleSlider.qml</file>
         <file>ColorButton.qml</file>
         <file>AboutDialog.qml</file>
-        <file>InsertNameDialog.qml</file>
+
         <file>SettingsEffectsTab.qml</file>
         <file>main.qml</file>
         <file>SettingsTerminalTab.qml</file>

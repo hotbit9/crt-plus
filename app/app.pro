@@ -26,8 +26,8 @@ SOURCES += main.cpp \
     daemonlauncher.cpp \
     sessionmanagerbackend.cpp
 
-HEADERS += macutils.h badgehelper.h sfsymbolprovider.h
-OBJECTIVE_SOURCES += macutils.mm sfsymbolprovider.mm
+HEADERS += macutils.h badgehelper.h sfsymbolprovider.h nativealert.h
+OBJECTIVE_SOURCES += macutils.mm sfsymbolprovider.mm nativealert.mm
 LIBS += -framework AppKit
 PLIST = $$DESTDIR/crt-plus.app/Contents/Info.plist
 # Sparkle update framework (optional — only if third_party/Sparkle is present)
